@@ -3,6 +3,7 @@ package diff
 import (
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -55,20 +56,36 @@ func Render(file *gitdiff.File, width int) []string {
 	if width < 4 {
 		width = 4
 	}
+	// Each side column receives width/2-1 visible characters (one space separator).
+	colWidth := width/2 - 1
 
 	// Align produces side-by-side RowPairs; Highlight populates ANSI fields.
 	pairs := Align(file, FullFile)
-	_ = Highlight(pairs, file.NewName) // non-fatal; ANSI may fall back to Content
+	// Use effectiveName so deleted files (NewName="") get their OldName lexer.
+	_ = Highlight(pairs, effectiveName(file)) // non-fatal; ANSI may fall back to Content
 
 	rows := make([]string, 0, len(pairs))
 	for _, p := range pairs {
-		rows = append(rows, renderPair(p))
+		rows = append(rows, renderPairWidth(p, colWidth))
 	}
 	return rows
 }
 
+// effectiveName returns the best filename for lexer selection.
+// For deleted files go-gitdiff sets NewName to "" or "/dev/null"; the real
+// path is in OldName. Chroma's lexers.Match("") returns nil (falls back to
+// plaintext), losing syntax colour for all deleted files.
+func effectiveName(f *gitdiff.File) string {
+	if f.NewName != "" && f.NewName != "/dev/null" {
+		return f.NewName
+	}
+	return f.OldName
+}
+
 // renderPair composes one side-by-side ANSI row from a RowPair. For Modified
 // pairs it delegates to applyIntraLine; all others use renderSide directly.
+// No column width truncation is applied; use renderPairWidth when a column
+// width limit is required.
 func renderPair(p RowPair) string {
 	var left, right string
 	if p.Left.Kind == LineModifiedOld && p.Right.Kind == LineModifiedNew {
@@ -78,6 +95,20 @@ func renderPair(p RowPair) string {
 		right = renderSide(p.Right)
 	}
 	return joinColumns(left, right)
+}
+
+// renderPairWidth composes one side-by-side ANSI row from a RowPair and
+// truncates each column to colWidth visible runes. ANSI escape sequences are
+// not counted toward the visible width so they are never split mid-sequence.
+func renderPairWidth(p RowPair, colWidth int) string {
+	var left, right string
+	if p.Left.Kind == LineModifiedOld && p.Right.Kind == LineModifiedNew {
+		left, right = applyIntraLine(p)
+	} else {
+		left = renderSide(p.Left)
+		right = renderSide(p.Right)
+	}
+	return joinColumns(truncateANSI(left, colWidth), truncateANSI(right, colWidth))
 }
 
 // renderSide produces the ANSI string for one column side. It applies the
@@ -152,6 +183,44 @@ func applyIntraLine(p RowPair) (left, right string) {
 // (RESEARCH Pitfall 1, Threat T-01-08).
 func joinColumns(left, right string) string {
 	return left + ansiReset + " " + right
+}
+
+// truncateANSI truncates s to at most maxRunes visible rune positions while
+// preserving ANSI CSI escape sequences (ESC '[' ... terminator) intact.
+// ANSI escape bytes are not counted toward the visible width so they are
+// never split mid-sequence, which would corrupt terminal rendering.
+//
+// If maxRunes <= 0, the empty string is returned.
+func truncateANSI(s string, maxRunes int) string {
+	if maxRunes <= 0 {
+		return ""
+	}
+	visible := 0
+	i := 0
+	for i < len(s) {
+		// Detect ANSI CSI sequence: ESC '[' <params> <terminator 0x40–0x7E>.
+		if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '[' {
+			// Scan to the CSI final byte (inclusive).
+			j := i + 2
+			for j < len(s) && (s[j] < 0x40 || s[j] > 0x7E) {
+				j++
+			}
+			if j < len(s) {
+				j++ // include the terminator byte
+			}
+			i = j // advance past the full escape sequence; no visible width consumed
+			continue
+		}
+		// Decode one UTF-8 rune for correct character counting.
+		_, size := utf8.DecodeRuneInString(s[i:])
+		if visible >= maxRunes {
+			// Truncate here: return everything up to (not including) this rune.
+			return s[:i]
+		}
+		visible++
+		i += size
+	}
+	return s
 }
 
 // lineBg returns the ANSI background colour sequence for the given LineKind.
