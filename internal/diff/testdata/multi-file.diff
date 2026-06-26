@@ -1,0 +1,26 @@
+diff --git a/internal/diff/model.go b/internal/diff/model.go
+index 1234567..abcdefg 100644
+--- a/internal/diff/model.go
++++ b/internal/diff/model.go
+@@ -1,5 +1,6 @@
+ // Package diff provides utilities for parsing and rendering git diff output.
+ package diff
++
++// Version is the current package version.
++const Version = "0.1.0"
+
+-// LineKind classifies each line.
++// LineKind classifies each rendered line in the side-by-side diff view.
+ type LineKind int
+diff --git a/internal/diff/parse.go b/internal/diff/parse.go
+index 2345678..bcdefga 100644
+--- a/internal/diff/parse.go
++++ b/internal/diff/parse.go
+@@ -1,6 +1,7 @@
+ package diff
+
+ import (
++	"fmt"
+ 	"io"
+
+ 	"github.com/bluekeyes/go-gitdiff/gitdiff"

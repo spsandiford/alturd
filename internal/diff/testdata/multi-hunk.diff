@@ -1,0 +1,31 @@
+diff --git a/internal/diff/render.go b/internal/diff/render.go
+index 1234567..abcdefg 100644
+--- a/internal/diff/render.go
++++ b/internal/diff/render.go
+@@ -1,12 +1,13 @@
+ package diff
+
+ import (
++	"fmt"
+ 	"strings"
+ )
+
+-// ansiReset is the ANSI escape sequence to reset all terminal attributes.
+-const ansiReset = "\x1b[0m"
++// ansiReset resets all terminal attributes including foreground and background.
++const ansiReset = "\x1b[m"
+
+ // joinColumns combines left and right column ANSI strings with a reset boundary.
+ func joinColumns(left, right string) string {
+@@ -25,7 +26,8 @@ func joinColumns(left, right string) string {
+ // Render produces one ANSI-encoded string per rendered row.
+ // width is the total terminal width; each column gets roughly half.
+ func Render(pairs []RowPair, width int) []string {
+-	result := make([]string, 0, len(pairs))
++	result := make([]string, 0, len(pairs)+1)
++	colWidth := width/2 - 1
+ 	for _, pair := range pairs {
+-		result = append(result, joinColumns(pair.Left.ANSI, pair.Right.ANSI))
++		left := truncate(pair.Left.ANSI, colWidth)
++		result = append(result, fmt.Sprintf("%s%s%s", left, ansiReset, pair.Right.ANSI))
+ 	}

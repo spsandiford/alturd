@@ -1,0 +1,16 @@
+diff --git a/internal/diff/model.go b/internal/diff/model.go
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/internal/diff/model.go
+@@ -0,0 +1,10 @@
++// Package diff provides utilities for parsing and rendering git diff output.
++package diff
++
++// LineKind classifies each line in the side-by-side diff view.
++type LineKind int
++
++const (
++	LineContext     LineKind = iota
++	LineAdded
++)

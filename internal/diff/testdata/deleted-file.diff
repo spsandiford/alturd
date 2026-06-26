@@ -1,0 +1,14 @@
+diff --git a/old/legacy.go b/old/legacy.go
+deleted file mode 100644
+index abcdefg..0000000
+--- a/old/legacy.go
++++ /dev/null
+@@ -1,8 +0,0 @@
+-// Package old contains legacy code scheduled for removal.
+-package old
+-
+-// Deprecated: Use the new internal/diff package instead.
+-func Parse(data []byte) error {
+-	_ = data
+-	return nil
+-}

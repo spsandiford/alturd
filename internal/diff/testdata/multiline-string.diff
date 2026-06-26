@@ -1,0 +1,25 @@
+diff --git a/internal/diff/highlight_test.go b/internal/diff/highlight_test.go
+index 1234567..abcdefg 100644
+--- a/internal/diff/highlight_test.go
++++ b/internal/diff/highlight_test.go
+@@ -1,18 +1,18 @@
+ package diff_test
+
+ import "testing"
+
+ func TestMultilineString(t *testing.T) {
+-	// Old SQL query spanning multiple lines.
+-	query := `SELECT id, name, email
+-FROM users
+-WHERE active = true
+-ORDER BY created_at DESC
+-LIMIT 100`
++	// New SQL query spanning multiple lines.
++	query := `SELECT id, name, email, role
++FROM users
++WHERE active = true AND verified = true
++ORDER BY created_at DESC
++LIMIT 50`
+ 	if query == "" {
+ 		t.Error("query should not be empty")
+ 	}

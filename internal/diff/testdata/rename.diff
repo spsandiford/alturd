@@ -1,0 +1,4 @@
+diff --git a/pkg/diff/parser.go b/internal/diff/parse.go
+similarity index 100%
+rename from pkg/diff/parser.go
+rename to internal/diff/parse.go

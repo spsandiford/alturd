@@ -1,0 +1,11 @@
+diff --git a/internal/diff/token_test.go b/internal/diff/token_test.go
+index 1234567..abcdefg 100644
+--- a/internal/diff/token_test.go
++++ b/internal/diff/token_test.go
+@@ -1,5 +1,5 @@
+ package diff_test
+
+-// ManyTokens: arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg arg
++// ManyTokens: val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val val
+
+ func TestTokenGuard(t *testing.T) {}

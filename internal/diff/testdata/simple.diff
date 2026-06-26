@@ -1,0 +1,13 @@
+diff --git a/README.md b/README.md
+index 1234567..abcdefg 100644
+--- a/README.md
++++ b/README.md
+@@ -1,7 +1,7 @@
+ # Alturd
+
+-A terminal UI for reviewing git diffs.
++A terminal UI for reviewing git diffs side-by-side.
+
+ ## Installation
+
+ Run `go install github.com/alturd/alturd@latest` to install.

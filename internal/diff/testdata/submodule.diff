@@ -1,0 +1,7 @@
+diff --git a/vendor/charm b/vendor/charm
+index abc1234..def5678 160000
+--- a/vendor/charm
++++ b/vendor/charm
+@@ -1 +1 @@
+-Subproject commit abc1234567890abcdef1234567890abcdef123456
++Subproject commit def5678901234567890abcdef1234567890abcdef
