@@ -713,27 +713,15 @@ func computeIntraLineWithTimeout(dmp *diffmatchpatch.DiffMatchPatch, old, new st
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Python fixture corpus availability**
-   - What we know: The ROADMAP and CONTEXT.md reference "12+ Python fixture scenarios" from `tests/fixtures/diff/` in the Python repo.
-   - What's unclear: The Python repo path is not checked into this Go repo. The fixtures must be copied (D-01) but the source location is not documented.
-   - Recommendation: The planner must include a Wave 0 task: "Locate Python repo and copy fixture files, or create representative fixture files from scratch based on the 12 documented scenario types." If the Python repo is not accessible, all 12 scenario types are well-understood and can be hand-crafted from `git diff` output on a test repo.
+1. **Python fixture corpus availability** — RESOLVED: Plan 01-01 Task 2 hand-crafts all 13 fixture files from documented scenario types (binary patches, renames, mode-only, submodule bumps, no-newline-at-EOF, etc.) since the Python repo is not checked into this Go repo. Fixtures are created in `internal/diff/testdata/` per D-01/D-02.
 
-2. **Full-file mode and diff context coverage**
-   - What we know: DIFF-05 requires "entire file rendered with all unchanged lines shown." Phase 1 has no git subprocess (that's Phase 2).
-   - What's unclear: How do Phase 1 tests verify full-file mode if the diff fixtures may only contain `-U3` context (3 lines)?
-   - Recommendation: Fixture files for full-file mode tests should be generated with `git diff -U99999` to include all context. The planner should create fixtures with large `-U` values. Alternatively, the planner may decide that full-file mode in Phase 1 means "render all lines present in the diff output" (context + changed), which is testable without the original file. Clarify this with the user if needed.
+2. **Full-file mode and diff context coverage** — RESOLVED: Plan 01-01 Task 2 generates full-file fixtures with large unified context (`-U99999`) to support full-file render testing. Full-file mode in Phase 1 means "render all lines present in the diff output" (context + changed), testable without the original file per DIFF-05.
 
-3. **Chroma per-line multi-line token color bleed (Pitfall 2)**
-   - What we know: Multi-line string literals produce tokens that span `"\n"` boundaries, which breaks per-line ANSI string splitting.
-   - What's unclear: Whether `terminal16m` formatter emits a reset at every `"\n"` boundary (pkg.go.dev does not document this behavior).
-   - Recommendation: The planner should include a task to write a micro-test with a two-line string literal fixture and verify the output. If color bleed occurs, the fix is to append `"\x1b[0m"` to each line after splitting.
+3. **Chroma per-line multi-line token color bleed (Pitfall 2)** — RESOLVED: Plan 01-03 Task 1 explicitly appends `\x1b[0m` reset to every split line after chroma tokenization (Pitfall 2 mitigation). A multi-line string literal fixture is included to verify this behavior.
 
-4. **Module path for go.mod**
-   - What we know: The binary is named `alturd`; the repo is `alturd/alturd` (or similar).
-   - What's unclear: The exact GitHub org/repo name is not established.
-   - Recommendation: Use `github.com/alturd/alturd` as a placeholder and update when the repo is published. This does not affect Phase 1 functionality.
+4. **Module path for go.mod** — RESOLVED: Plan 01-01 Task 1 uses placeholder `github.com/alturd/alturd` per assumption A4; update on publish. This does not affect Phase 1 functionality.
 
 ---
 
