@@ -31,7 +31,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A two-file diff produces side-by-side columns with Chroma syntax highlighting applied where a language can be detected; ANSI resets at every left-column boundary prevent color bleed
   3. Modified lines carry intra-line character-level change markers produced by the LCS pass, subject to the 1000-char/200-token/100ms guards
   4. Full-file mode and hunk-only mode each produce correct, independently testable output for the same input — full-file includes all unchanged lines; hunk-only includes only changed hunks
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 01-01-PLAN.md — Module foundation: go.mod + 3 locked diff libs, 13-fixture corpus, core type model (RowPair/RenderMode)
+- [ ] 01-02-PLAN.md — Parse (no-panic go-gitdiff wrapper) + Align (RowPairs, full-file/hunk modes, edge-case placeholders)
+- [ ] 01-03-PLAN.md — Highlight (Chroma) + Render (side-by-side []string, layered diff colors, guarded intra-line markers)
 
 ### Phase 2: Git Layer + CLI
 **Goal**: The `alturd` binary can be invoked with any valid command-line form, executes the correct git plumbing commands, and returns clean errors for invalid invocations — all without a running TUI.
@@ -78,7 +81,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Diff Model | 0/TBD | Not started | - |
+| 1. Diff Model | 0/3 | Not started | - |
 | 2. Git Layer + CLI | 0/TBD | Not started | - |
 | 3. TUI Application | 0/TBD | Not started | - |
 | 4. Config + Theming + Difftool + Distribution | 0/TBD | Not started | - |
