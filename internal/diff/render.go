@@ -48,10 +48,15 @@ const (
 // Tests pass testWidth=160; Phase 3 passes the actual terminal width. Render
 // is pure and re-callable with different widths — it mutates no package state (D-04).
 //
-// ANSI layer order:
+// ANSI layer order for Added/Removed/Context rows:
 //  1. Syntax highlighting foreground (chroma, via Highlight)
 //  2. Line-level diff background (DIFF-03) wraps the chroma content
-//  3. Intra-line bold spans (DIFF-04) on Modified rows when guards permit
+//
+// For Modified rows, intra-line character-level span markers (DIFF-04) are applied
+// on top of the diff background instead. Chroma syntax highlighting is NOT applied
+// to Modified rows because the intra-line diff operates on raw Content; composing
+// chroma ANSI sequences with intra-line span offsets requires ANSI-aware offset
+// mapping that is deferred to a future phase. See applyIntraLine.
 func Render(file *gitdiff.File, width int) []string {
 	if width < 4 {
 		width = 4
@@ -133,6 +138,13 @@ func renderSide(line RenderedLine) string {
 
 // applyIntraLine computes character-level intra-line span markers for a Modified
 // RowPair and returns the coloured left and right column strings.
+//
+// NOTE: This function uses raw Content (p.Left.Content / p.Right.Content) as input
+// to DiffMain, not the Chroma-highlighted ANSI strings. As a result, syntax
+// highlighting foreground colour is absent on Modified rows — the intra-line span
+// markers and line-level diff background are applied to plain text. Composing
+// chroma ANSI sequences with character-offset span injection requires ANSI-aware
+// offset mapping and is deferred to a future phase.
 //
 // Guards (D-07): if either line exceeds 1000 chars, exceeds 200 tokens, or
 // DiffMain takes longer than 100ms, the function falls back to renderSide with
