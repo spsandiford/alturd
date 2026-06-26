@@ -19,9 +19,9 @@
 - [x] **DIFF-02**: User sees syntax highlighting via Chroma (200+ languages, same lexer selection behavior as Pygments)
 - [x] **DIFF-03**: User sees line-level diff colors (added/removed/modified) layered with syntax highlighting
 - [x] **DIFF-04**: User sees intra-line word/character-level change markers on modified lines (with 1000-char/200-token/100ms guards)
-- [ ] **DIFF-05**: User sees full-file mode by default — entire file rendered with changes highlighted in place, unchanged lines shown in full
+- [x] **DIFF-05**: User sees full-file mode by default — entire file rendered with changes highlighted in place, unchanged lines shown in full
 - [ ] **DIFF-06**: User can toggle between full-file and hunk-only view with `v` hotkey without reload
-- [ ] **DIFF-07**: Binary files, pure renames, mode-only changes, submodule bumps, and no-newline-at-EOF all render correct placeholder or diff content
+- [x] **DIFF-07**: Binary files, pure renames, mode-only changes, submodule bumps, and no-newline-at-EOF all render correct placeholder or diff content
 
 ### Navigation
 
@@ -94,8 +94,8 @@
 | DIFF-02 | Phase 1 | Complete |
 | DIFF-03 | Phase 1 | Complete |
 | DIFF-04 | Phase 1 | Complete |
-| DIFF-05 | Phase 1 | Pending |
-| DIFF-07 | Phase 1 | Pending |
+| DIFF-05 | Phase 1 | Complete |
+| DIFF-07 | Phase 1 | Complete |
 | GIT-01 | Phase 2 | Pending |
 | GIT-02 | Phase 2 | Pending |
 | GIT-03 | Phase 2 | Pending |
