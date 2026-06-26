@@ -21,8 +21,13 @@ func isSubmodule(f *gitdiff.File) bool {
 // isModeOnly reports whether the file's diff is a pure mode change (e.g.
 // chmod +x) with no textual content change. Such files have differing modes
 // but zero TextFragments (RESEARCH Pitfall 4).
+//
+// The IsDelete and IsNew guards prevent a false-positive for empty deleted or
+// newly-created files: an empty deleted file has OldMode set, NewMode=0, and
+// zero TextFragments — identical to a mode-only change, but it is a deletion.
 func isModeOnly(f *gitdiff.File) bool {
-	return f.OldMode != f.NewMode && f.OldMode != 0 && len(f.TextFragments) == 0
+	return !f.IsDelete && !f.IsNew &&
+		f.OldMode != f.NewMode && f.OldMode != 0 && len(f.TextFragments) == 0
 }
 
 // FileStatus returns a short bracketed status marker for a file suitable for
