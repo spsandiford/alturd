@@ -147,32 +147,20 @@ func splitAndReset(formatted string) []string {
 	return lines
 }
 
-// isPlaceholderPairs reports whether every RowPair in pairs consists entirely of
-// placeholder or blank content that should bypass chroma highlighting.
+// isPlaceholderPairs reports whether every RowPair in pairs was produced by
+// Align as a non-source placeholder row (binary notice, mode-only notice,
+// submodule commit reference). Placeholder pairs bypass Chroma highlighting.
 //
-// Placeholders are:
-//   - LineBlank rows (no content on that side)
-//   - Binary/mode-only markers: content starting with "[" (e.g. "[Binary file changed…]")
-//   - Submodule commit references: content starting with "Subproject commit"
+// Detection is structural: it reads the IsPlaceholder field set by Align,
+// avoiding content-prefix heuristics that can misclassify real source files
+// (e.g. TOML config files where every changed line starts with "[").
 //
-// If ANY row has non-placeholder content, the file is eligible for highlighting.
+// If ANY row is not a placeholder, the file is eligible for highlighting.
 func isPlaceholderPairs(pairs []RowPair) bool {
 	for _, p := range pairs {
-		if !isPlaceholderSide(p.Left.Content, p.Left.Kind) {
-			return false
-		}
-		if !isPlaceholderSide(p.Right.Content, p.Right.Kind) {
+		if !p.IsPlaceholder {
 			return false
 		}
 	}
 	return true
-}
-
-// isPlaceholderSide returns true when the given side should bypass chroma.
-func isPlaceholderSide(content string, kind LineKind) bool {
-	if kind == LineBlank {
-		return true
-	}
-	return strings.HasPrefix(content, "[") ||
-		strings.HasPrefix(content, "Subproject commit")
 }

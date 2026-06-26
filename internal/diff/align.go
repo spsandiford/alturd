@@ -90,8 +90,9 @@ func Align(file *gitdiff.File, mode RenderMode) []RowPair {
 			notice = "[Binary file changed]"
 		}
 		return []RowPair{{
-			Left:  RenderedLine{Kind: LineContext, Content: notice},
-			Right: RenderedLine{Kind: LineBlank},
+			Left:          RenderedLine{Kind: LineContext, Content: notice},
+			Right:         RenderedLine{Kind: LineBlank},
+			IsPlaceholder: true,
 		}}
 	}
 
@@ -99,8 +100,9 @@ func Align(file *gitdiff.File, mode RenderMode) []RowPair {
 	if isModeOnly(file) {
 		notice := fmt.Sprintf("[Mode changed: %04o → %04o]", file.OldMode, file.NewMode)
 		return []RowPair{{
-			Left:  RenderedLine{Kind: LineContext, Content: notice},
-			Right: RenderedLine{Kind: LineBlank},
+			Left:          RenderedLine{Kind: LineContext, Content: notice},
+			Right:         RenderedLine{Kind: LineBlank},
+			IsPlaceholder: true,
 		}}
 	}
 
@@ -117,6 +119,8 @@ func Align(file *gitdiff.File, mode RenderMode) []RowPair {
 // alignSubmodule builds RowPairs for a submodule diff by emitting each line as
 // a one-sided row: deletes on the left (LineRemoved + LineBlank), adds on the
 // right (LineBlank + LineAdded), context on both sides. No Modified pairing.
+// All rows are marked IsPlaceholder=true so Highlight skips chroma tokenisation
+// on submodule commit SHA strings (not source code).
 func alignSubmodule(file *gitdiff.File) []RowPair {
 	var result []RowPair
 	for _, frag := range file.TextFragments {
@@ -125,18 +129,21 @@ func alignSubmodule(file *gitdiff.File) []RowPair {
 			switch l.Op {
 			case gitdiff.OpContext:
 				result = append(result, RowPair{
-					Left:  RenderedLine{Kind: LineContext, Content: content},
-					Right: RenderedLine{Kind: LineContext, Content: content},
+					Left:          RenderedLine{Kind: LineContext, Content: content},
+					Right:         RenderedLine{Kind: LineContext, Content: content},
+					IsPlaceholder: true,
 				})
 			case gitdiff.OpDelete:
 				result = append(result, RowPair{
-					Left:  RenderedLine{Kind: LineRemoved, Content: content},
-					Right: RenderedLine{Kind: LineBlank},
+					Left:          RenderedLine{Kind: LineRemoved, Content: content},
+					Right:         RenderedLine{Kind: LineBlank},
+					IsPlaceholder: true,
 				})
 			case gitdiff.OpAdd:
 				result = append(result, RowPair{
-					Left:  RenderedLine{Kind: LineBlank},
-					Right: RenderedLine{Kind: LineAdded, Content: content},
+					Left:          RenderedLine{Kind: LineBlank},
+					Right:         RenderedLine{Kind: LineAdded, Content: content},
+					IsPlaceholder: true,
 				})
 			}
 		}

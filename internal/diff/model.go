@@ -82,4 +82,11 @@ type RowPair struct {
 
 	// Right holds the new-file content for this row position.
 	Right RenderedLine
+
+	// IsPlaceholder is true when this row was synthesised by Align as a
+	// non-source notice — binary change notices, mode-only change notices,
+	// and submodule commit references. Placeholder rows bypass Chroma
+	// syntax highlighting because their Content is not source code.
+	// Set structurally by Align to avoid fragile content-prefix heuristics.
+	IsPlaceholder bool
 }
