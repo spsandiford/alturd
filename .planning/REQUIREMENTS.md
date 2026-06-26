@@ -88,26 +88,44 @@
 
 ## Traceability
 
-*(Populated by roadmapper — see ROADMAP.md)*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GIT-01..05 | TBD | Pending |
-| DIFF-01..07 | TBD | Pending |
-| NAV-01..04 | TBD | Pending |
-| TREE-01..03 | TBD | Pending |
-| SEARCH-01 | TBD | Pending |
-| THEME-01 | TBD | Pending |
-| CONFIG-01..02 | TBD | Pending |
-| DIFFTOOL-01..03 | TBD | Pending |
-| DIST-01..03 | TBD | Pending |
-| LOG-01 | TBD | Pending |
+| DIFF-01 | Phase 1 | Pending |
+| DIFF-02 | Phase 1 | Pending |
+| DIFF-03 | Phase 1 | Pending |
+| DIFF-04 | Phase 1 | Pending |
+| DIFF-05 | Phase 1 | Pending |
+| DIFF-07 | Phase 1 | Pending |
+| GIT-01 | Phase 2 | Pending |
+| GIT-02 | Phase 2 | Pending |
+| GIT-03 | Phase 2 | Pending |
+| GIT-04 | Phase 2 | Pending |
+| GIT-05 | Phase 2 | Pending |
+| LOG-01 | Phase 2 | Pending |
+| DIFF-06 | Phase 3 | Pending |
+| NAV-01 | Phase 3 | Pending |
+| NAV-02 | Phase 3 | Pending |
+| NAV-03 | Phase 3 | Pending |
+| NAV-04 | Phase 3 | Pending |
+| TREE-01 | Phase 3 | Pending |
+| TREE-02 | Phase 3 | Pending |
+| TREE-03 | Phase 3 | Pending |
+| SEARCH-01 | Phase 3 | Pending |
+| THEME-01 | Phase 4 | Pending |
+| CONFIG-01 | Phase 4 | Pending |
+| CONFIG-02 | Phase 4 | Pending |
+| DIFFTOOL-01 | Phase 4 | Pending |
+| DIFFTOOL-02 | Phase 4 | Pending |
+| DIFFTOOL-03 | Phase 4 | Pending |
+| DIST-01 | Phase 4 | Pending |
+| DIST-02 | Phase 4 | Pending |
+| DIST-03 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 27 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 27 ⚠️
+- v1 requirements: 30 total
+- Mapped to phases: 30 (Phase 1: 6, Phase 2: 6, Phase 3: 9, Phase 4: 9)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-26*
-*Last updated: 2026-06-26 after initial definition*
+*Last updated: 2026-06-26 after roadmap creation — traceability populated*
