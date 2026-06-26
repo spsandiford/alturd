@@ -16,7 +16,7 @@ the configuration, theming, difftool integration, and release infrastructure tha
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Diff Model** - Pure Go diff parsing and rendering engine validated against the Python fixture corpus
+- [x] **Phase 1: Diff Model** - Pure Go diff parsing and rendering engine validated against the Python fixture corpus (completed 2026-06-26)
 - [ ] **Phase 2: Git Layer + CLI** - Git subprocess chokepoint, ref-grammar argument parsing, error handling, and logging
 - [ ] **Phase 3: TUI Application** - Full bubbletea v2 interactive app with file tree, diff pane, and all navigation
 - [ ] **Phase 4: Config + Theming + Difftool + Distribution** - TOML config, OSC 11 theming, difftool mode, CI, goreleaser release
@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Modified lines carry intra-line character-level change markers produced by the LCS pass, subject to the 1000-char/200-token/100ms guards
   4. Full-file mode and hunk-only mode each produce correct, independently testable output for the same input — full-file includes all unchanged lines; hunk-only includes only changed hunks
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 **Wave 1**
 
 - [x] 01-01-PLAN.md — Module foundation: go.mod + 3 locked diff libs, 13-fixture corpus, core type model (RowPair/RenderMode)
@@ -46,7 +46,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03-PLAN.md — Highlight (Chroma) + Render (side-by-side []string, layered diff colors, guarded intra-line markers)
+- [x] 01-03-PLAN.md — Highlight (Chroma) + Render (side-by-side []string, layered diff colors, guarded intra-line markers)
 
 ### Phase 2: Git Layer + CLI
 
@@ -102,7 +102,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Diff Model | 2/3 | In Progress|  |
+| 1. Diff Model | 3/3 | Complete   | 2026-06-26 |
 | 2. Git Layer + CLI | 0/TBD | Not started | - |
 | 3. TUI Application | 0/TBD | Not started | - |
 | 4. Config + Theming + Difftool + Distribution | 0/TBD | Not started | - |

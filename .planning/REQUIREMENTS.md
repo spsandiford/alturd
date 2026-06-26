@@ -15,10 +15,10 @@
 
 ### Diff Model
 
-- [ ] **DIFF-01**: User sees old and new file content rendered in aligned parallel side-by-side columns
-- [ ] **DIFF-02**: User sees syntax highlighting via Chroma (200+ languages, same lexer selection behavior as Pygments)
-- [ ] **DIFF-03**: User sees line-level diff colors (added/removed/modified) layered with syntax highlighting
-- [ ] **DIFF-04**: User sees intra-line word/character-level change markers on modified lines (with 1000-char/200-token/100ms guards)
+- [x] **DIFF-01**: User sees old and new file content rendered in aligned parallel side-by-side columns
+- [x] **DIFF-02**: User sees syntax highlighting via Chroma (200+ languages, same lexer selection behavior as Pygments)
+- [x] **DIFF-03**: User sees line-level diff colors (added/removed/modified) layered with syntax highlighting
+- [x] **DIFF-04**: User sees intra-line word/character-level change markers on modified lines (with 1000-char/200-token/100ms guards)
 - [ ] **DIFF-05**: User sees full-file mode by default — entire file rendered with changes highlighted in place, unchanged lines shown in full
 - [ ] **DIFF-06**: User can toggle between full-file and hunk-only view with `v` hotkey without reload
 - [ ] **DIFF-07**: Binary files, pure renames, mode-only changes, submodule bumps, and no-newline-at-EOF all render correct placeholder or diff content
@@ -90,10 +90,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DIFF-01 | Phase 1 | Pending |
-| DIFF-02 | Phase 1 | Pending |
-| DIFF-03 | Phase 1 | Pending |
-| DIFF-04 | Phase 1 | Pending |
+| DIFF-01 | Phase 1 | Complete |
+| DIFF-02 | Phase 1 | Complete |
+| DIFF-03 | Phase 1 | Complete |
+| DIFF-04 | Phase 1 | Complete |
 | DIFF-05 | Phase 1 | Pending |
 | DIFF-07 | Phase 1 | Pending |
 | GIT-01 | Phase 2 | Pending |
@@ -122,6 +122,7 @@
 | DIST-03 | Phase 4 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 30 total
 - Mapped to phases: 30 (Phase 1: 6, Phase 2: 6, Phase 3: 9, Phase 4: 9)
 - Unmapped: 0 ✓
