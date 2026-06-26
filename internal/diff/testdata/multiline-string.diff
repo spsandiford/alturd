@@ -2,7 +2,7 @@ diff --git a/internal/diff/highlight_test.go b/internal/diff/highlight_test.go
 index 1234567..abcdefg 100644
 --- a/internal/diff/highlight_test.go
 +++ b/internal/diff/highlight_test.go
-@@ -1,18 +1,18 @@
+@@ -1,14 +1,14 @@
  package diff_test
 
  import "testing"
