@@ -195,25 +195,30 @@ func TestAlign(t *testing.T) {
 	})
 
 	t.Run("context_lines_populated", func(t *testing.T) {
-		// In FullFile mode, context lines must appear with LineContext on both sides
-		// and Content must be non-empty.
+		// In FullFile mode, context lines must appear with LineContext on BOTH sides.
+		// Blank context lines may have empty Content (they represent blank lines in the file).
+		// At least one non-blank context line must have non-empty Content.
 		file := parseFirst(t, "simple.diff")
 		rows := diff.Align(file, diff.FullFile)
 
 		foundContext := false
+		foundNonBlankContent := false
 		for _, row := range rows {
 			if row.Left.Kind == diff.LineContext {
 				foundContext = true
-				if row.Left.Content == "" {
-					t.Error("LineContext row has empty Left.Content")
-				}
 				if row.Right.Kind != diff.LineContext {
 					t.Errorf("LineContext row: Left=LineContext but Right=%v", row.Right.Kind)
+				}
+				if row.Left.Content != "" {
+					foundNonBlankContent = true
 				}
 			}
 		}
 		if !foundContext {
 			t.Error("Align(simple.diff, FullFile): no LineContext rows found")
+		}
+		if !foundNonBlankContent {
+			t.Error("Align(simple.diff, FullFile): all context rows have empty Content")
 		}
 	})
 
