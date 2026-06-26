@@ -35,10 +35,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Modified lines carry intra-line character-level change markers produced by the LCS pass, subject to the 1000-char/200-token/100ms guards
   4. Full-file mode and hunk-only mode each produce correct, independently testable output for the same input — full-file includes all unchanged lines; hunk-only includes only changed hunks
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Module foundation: go.mod + 3 locked diff libs, 13-fixture corpus, core type model (RowPair/RenderMode)
+- [x] 01-01-PLAN.md — Module foundation: go.mod + 3 locked diff libs, 13-fixture corpus, core type model (RowPair/RenderMode)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -102,7 +102,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Diff Model | 0/3 | Not started | - |
+| 1. Diff Model | 1/3 | In Progress|  |
 | 2. Git Layer + CLI | 0/TBD | Not started | - |
 | 3. TUI Application | 0/TBD | Not started | - |
 | 4. Config + Theming + Difftool + Distribution | 0/TBD | Not started | - |
