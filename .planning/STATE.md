@@ -6,8 +6,8 @@ current_phase: 2
 current_phase_name: Git Layer + CLI
 status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-06-26T17:52:51.990Z"
-last_activity: 2026-06-26
+last_updated: "2026-06-27T20:50:09.950Z"
+last_activity: 2026-06-27
 last_activity_desc: Phase 01 complete, transitioned to Phase 2
 progress:
   total_phases: 4
@@ -21,19 +21,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-25)
+See: .planning/PROJECT.md (updated 2026-06-27)
 
 **Core value:** A developer can download a single binary, run `alturd` in any git repository, and navigate every changed file and every individual diff hunk with fast keyboard-driven controls — no runtime dependencies required.
-**Current focus:** Phase 01 — diff-model
+**Current focus:** Phase 02 — Git Layer + CLI
 
 ## Current Position
 
 Phase: 2 — Git Layer + CLI
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-06-26 — Phase 01 complete, transitioned to Phase 2
+Last activity: 2026-06-27 — Phase 01 complete, transitioned to Phase 2
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████████████████] 3/3 plans (100%)
 
 ## Performance Metrics
 
@@ -63,23 +63,24 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Init: Horizontal-layers build order (diff model → git layer → TUI → config/CI/release) chosen to maximize testability; diff model validated against Python fixture corpus before any TUI code is written
+- Phase 1: Go module directive set to 1.25 (chroma/v2 v2.27.0 minimum); CLAUDE.md "Go 1.22+" constraint satisfied
+- Phase 1: Per-line ANSI reset guard required in Highlight() — splitAndReset() prevents Pitfall 2 color bleed
+- Phase 1: intra-line diff uses bold spans (not background color) for Phase 1; Phase 4 can switch
+- Phase 1: DiffMain called with checklines=false to prevent inaccurate diffs at line boundaries (Pitfall 3)
 - Init: Windows resize polling workaround needed in Phase 3 (bubbletea v2 issue #1601)
-- Init: ANSI reset required at every left-column boundary in side-by-side renderer (Phase 1)
 - Init: OSC 11 background detection must use 50ms timeout with dark fallback (Phase 4)
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- Phase 2 research flag: intra-line word diff ANSI composition needs spike before Phase 1 planning
 - Phase 3 research flag: in-pane search ANSI-aware marker insertion is non-trivial
-- Confirm 12 Python fixture files exist under tests/fixtures/diff/ before Phase 1 planning
+- Go not installed system-wide on dev host — needs proper install before Phase 2 execution
 
 ## Session Continuity
 
-Last session: 2026-06-26T17:33:00.474Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-diff-model/01-CONTEXT.md
+Last session: 2026-06-27
+Stopped at: Phase 01 complete, UAT passed (9/9), ready to plan Phase 02
+Resume file: None

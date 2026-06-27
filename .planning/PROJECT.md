@@ -12,7 +12,10 @@ A developer can download a single binary, run `alturd` in any git repository, an
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ **DIFF-02**: Chroma syntax highlighting — Phase 1 (Highlight() + per-line reset guard proven against 13-fixture corpus)
+- ✓ **DIFF-03**: Line-level diff colors (Added/Removed/Modified 256-colour backgrounds) — Phase 1 (Render/lineBg() implemented and tested)
+- ✓ **DIFF-04**: Intra-line character-level change markers on Modified rows — Phase 1 (applyIntraLine() + DiffMain with 100ms timeout guard)
+- ✓ **DIFF-05**: Full-file and hunk-only render modes via RenderMode enum — Phase 1 (wired; TUI toggle in Phase 3)
 
 ### Active
 
@@ -73,9 +76,10 @@ A developer can download a single binary, run `alturd` in any git repository, an
 |----------|-----------|---------|
 | Port to Go (not Rust/other) | Go produces small cross-platform binaries with trivial cross-compilation; bubbletea/lipgloss are mature; chroma is an exact Pygments analogue | — Pending |
 | Bubbletea + Lipgloss for TUI | The standard Go TUI stack; most comparable to Textual's reactive model; actively maintained by Charm | — Pending |
-| Chroma for syntax highlighting | Direct Go port of Pygments by same author — same language database, same API surface | — Pending |
-| Reuse Python fixture corpus | 12-scenario diff fixture corpus in `tests/fixtures/diff/` validates edge cases; porting the fixtures eliminates re-discovering parser bugs | — Pending |
+| Chroma for syntax highlighting | Direct Go port of Pygments by same author — same language database, same API surface | Confirmed — Phase 1; per-line ANSI reset guard required (Pitfall 2) |
+| Reuse Python fixture corpus | 12-scenario diff fixture corpus in `tests/fixtures/diff/` validates edge cases; porting the fixtures eliminates re-discovering parser bugs | Confirmed — Phase 1; hand-crafted 13-scenario Go corpus (Python repo unavailable); 3 fixtures needed @@ count fixes |
 | GitHub Actions + goreleaser for distribution | goreleaser handles cross-compilation matrix and GitHub Release artifact management cleanly | — Pending |
+| Go module go directive set to 1.25 | chroma/v2 v2.27.0 requires `go 1.25` minimum; CLAUDE.md "Go 1.22+" constraint is satisfied by 1.25 | Confirmed — Phase 1 |
 
 ## Evolution
 
@@ -95,4 +99,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-26
+*Last updated: 2026-06-27 after Phase 01*
