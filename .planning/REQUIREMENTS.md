@@ -7,11 +7,11 @@
 
 ### Git Layer
 
-- [ ] **GIT-01**: User can run `alturd` in a git repo with no args to diff working tree vs HEAD
-- [ ] **GIT-02**: User can run `alturd <ref>`, `alturd <ref1>..<ref2>`, `alturd <ref1>...<ref2>`, `alturd <ref1> <ref2>` to diff specific ranges
-- [ ] **GIT-03**: User can run `alturd -- <paths>` to filter diff to specific paths
+- [x] **GIT-01**: User can run `alturd` in a git repo with no args to diff working tree vs HEAD
+- [x] **GIT-02**: User can run `alturd <ref>`, `alturd <ref1>..<ref2>`, `alturd <ref1>...<ref2>`, `alturd <ref1> <ref2>` to diff specific ranges
+- [x] **GIT-03**: User can run `alturd -- <paths>` to filter diff to specific paths
 - [ ] **GIT-04**: `alturd --version` and `alturd --help` exit cleanly without creating log files or side effects
-- [ ] **GIT-05**: User sees a clear single-line error message when not in a git repo (exit 1) or git not on PATH (exit 127)
+- [x] **GIT-05**: User sees a clear single-line error message when not in a git repo (exit 1) or git not on PATH (exit 127)
 
 ### Diff Model
 
@@ -96,11 +96,11 @@
 | DIFF-04 | Phase 1 | Complete |
 | DIFF-05 | Phase 1 | Complete |
 | DIFF-07 | Phase 1 | Complete |
-| GIT-01 | Phase 2 | Pending |
-| GIT-02 | Phase 2 | Pending |
-| GIT-03 | Phase 2 | Pending |
+| GIT-01 | Phase 2 | Complete |
+| GIT-02 | Phase 2 | Complete |
+| GIT-03 | Phase 2 | Complete |
 | GIT-04 | Phase 2 | Pending |
-| GIT-05 | Phase 2 | Pending |
+| GIT-05 | Phase 2 | Complete |
 | LOG-01 | Phase 2 | Pending |
 | DIFF-06 | Phase 3 | Pending |
 | NAV-01 | Phase 3 | Pending |

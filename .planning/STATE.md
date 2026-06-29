@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: Git Layer + CLI
+current_phase: 02
+current_phase_name: git-layer-cli
 status: executing
 stopped_at: Phase 2 context gathered
-last_updated: "2026-06-29T18:26:44.486Z"
-last_activity: 2026-06-27
-last_activity_desc: Phase 01 complete, transitioned to Phase 2
+last_updated: "2026-06-29T20:39:34.102Z"
+last_activity: 2026-06-29
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
   percent: 25
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-27)
 
 **Core value:** A developer can download a single binary, run `alturd` in any git repository, and navigate every changed file and every individual diff hunk with fast keyboard-driven controls — no runtime dependencies required.
-**Current focus:** Phase 02 — Git Layer + CLI
+**Current focus:** Phase 02 — git-layer-cli
 
 ## Current Position
 
-Phase: 2 — Git Layer + CLI
-Plan: Not started
+Phase: 02 (git-layer-cli) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-06-27 — Phase 01 complete, transitioned to Phase 2
+Last activity: 2026-06-29 — Phase 02 execution started
 
 Progress: [████████████████████] 3/3 plans (100%)
 
@@ -55,6 +55,7 @@ Progress: [████████████████████] 3/3 pla
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 02 P01 | 128 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - Phase 1: DiffMain called with checklines=false to prevent inaccurate diffs at line boundaries (Pitfall 3)
 - Init: Windows resize polling workaround needed in Phase 3 (bubbletea v2 issue #1601)
 - Init: OSC 11 background detection must use 50ms timeout with dark fallback (Phase 4)
+- [Phase ?]: Phase 2 Plan 1: NormalizeCRLF exported as package-level helper to enable unit testing without real git subprocess (D-05 compliance)
+- [Phase ?]: Phase 2 Plan 1: ExecRunner stateless (no package-level singleton) — callers inject via DI
 
 ### Pending Todos
 
@@ -81,6 +84,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-29T18:26:44.480Z
+Last session: 2026-06-29T20:39:25.151Z
 Stopped at: Phase 2 context gathered
 Resume file: .planning/phases/02-git-layer-cli/02-CONTEXT.md
