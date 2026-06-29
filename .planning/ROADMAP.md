@@ -61,12 +61,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Git subprocess output is CRLF-normalized to LF immediately after `cmd.Output()` on all platforms before it reaches the diff parser
   5. The log file is written to `$XDG_STATE_HOME/alturd/alturd.log` (never to stderr) and is truncated to 1 MB on startup if it exceeds that size
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 
 **Wave 1** *(parallel — no shared files)*
 
 - [x] 02-01-PLAN.md — internal/git: Runner interface, ExecRunner (CRLF norm + exit-code mapping), ParseRefArgs ref grammar, ExitCodeError + table tests
-- [ ] 02-02-PLAN.md — internal/log: applog.Init XDG path resolution, 1 MB tail truncation, charmbracelet/log redirect + tests
+- [x] 02-02-PLAN.md — internal/log: applog.Init XDG path resolution, 1 MB tail truncation, charmbracelet/log redirect + tests
 
 **Wave 2** *(blocked on Wave 1 — wires git + log into the binary, reuses go.mod)*
 
@@ -112,6 +112,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Diff Model | 3/3 | Complete    | 2026-06-26 |
-| 2. Git Layer + CLI | 1/3 | In Progress|  |
+| 2. Git Layer + CLI | 2/3 | In Progress|  |
 | 3. TUI Application | 0/TBD | Not started | - |
 | 4. Config + Theming + Difftool + Distribution | 0/TBD | Not started | - |

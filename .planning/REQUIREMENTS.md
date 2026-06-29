@@ -60,7 +60,7 @@
 
 ### Logging
 
-- [ ] **LOG-01**: Log file written under `$XDG_STATE_HOME/alturd/alturd.log` (never to stderr); truncated at 1MB cap on startup
+- [x] **LOG-01**: Log file written under `$XDG_STATE_HOME/alturd/alturd.log` (never to stderr); truncated at 1MB cap on startup
 
 ## v2 Requirements
 
@@ -101,7 +101,7 @@
 | GIT-03 | Phase 2 | Complete |
 | GIT-04 | Phase 2 | Pending |
 | GIT-05 | Phase 2 | Complete |
-| LOG-01 | Phase 2 | Pending |
+| LOG-01 | Phase 2 | Complete |
 | DIFF-06 | Phase 3 | Pending |
 | NAV-01 | Phase 3 | Pending |
 | NAV-02 | Phase 3 | Pending |
