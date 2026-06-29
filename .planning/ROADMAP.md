@@ -17,7 +17,7 @@ the configuration, theming, difftool integration, and release infrastructure tha
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Diff Model** - Pure Go diff parsing and rendering engine validated against the Python fixture corpus (completed 2026-06-26)
-- [ ] **Phase 2: Git Layer + CLI** - Git subprocess chokepoint, ref-grammar argument parsing, error handling, and logging
+- [x] **Phase 2: Git Layer + CLI** - Git subprocess chokepoint, ref-grammar argument parsing, error handling, and logging (completed 2026-06-29)
 - [ ] **Phase 3: TUI Application** - Full bubbletea v2 interactive app with file tree, diff pane, and all navigation
 - [ ] **Phase 4: Config + Theming + Difftool + Distribution** - TOML config, OSC 11 theming, difftool mode, CI, goreleaser release
 
@@ -61,7 +61,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Git subprocess output is CRLF-normalized to LF immediately after `cmd.Output()` on all platforms before it reaches the diff parser
   5. The log file is written to `$XDG_STATE_HOME/alturd/alturd.log` (never to stderr) and is truncated to 1 MB on startup if it exceeds that size
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 
 **Wave 1** *(parallel — no shared files)*
 
@@ -70,7 +70,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on Wave 1 — wires git + log into the binary, reuses go.mod)*
 
-- [ ] 02-03-PLAN.md — cmd/alturd/main.go: cobra root command, RunE wiring, exit-code routing, stdout render path, --version/--help no-side-effect integration tests
+- [x] 02-03-PLAN.md — cmd/alturd/main.go: cobra root command, RunE wiring, exit-code routing, stdout render path, --version/--help no-side-effect integration tests
 
 ### Phase 3: TUI Application
 
@@ -112,6 +112,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Diff Model | 3/3 | Complete    | 2026-06-26 |
-| 2. Git Layer + CLI | 2/3 | In Progress|  |
+| 2. Git Layer + CLI | 3/3 | Complete   | 2026-06-29 |
 | 3. TUI Application | 0/TBD | Not started | - |
 | 4. Config + Theming + Difftool + Distribution | 0/TBD | Not started | - |

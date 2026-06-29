@@ -10,7 +10,7 @@
 - [x] **GIT-01**: User can run `alturd` in a git repo with no args to diff working tree vs HEAD
 - [x] **GIT-02**: User can run `alturd <ref>`, `alturd <ref1>..<ref2>`, `alturd <ref1>...<ref2>`, `alturd <ref1> <ref2>` to diff specific ranges
 - [x] **GIT-03**: User can run `alturd -- <paths>` to filter diff to specific paths
-- [ ] **GIT-04**: `alturd --version` and `alturd --help` exit cleanly without creating log files or side effects
+- [x] **GIT-04**: `alturd --version` and `alturd --help` exit cleanly without creating log files or side effects
 - [x] **GIT-05**: User sees a clear single-line error message when not in a git repo (exit 1) or git not on PATH (exit 127)
 
 ### Diff Model
@@ -99,7 +99,7 @@
 | GIT-01 | Phase 2 | Complete |
 | GIT-02 | Phase 2 | Complete |
 | GIT-03 | Phase 2 | Complete |
-| GIT-04 | Phase 2 | Pending |
+| GIT-04 | Phase 2 | Complete |
 | GIT-05 | Phase 2 | Complete |
 | LOG-01 | Phase 2 | Complete |
 | DIFF-06 | Phase 3 | Pending |
