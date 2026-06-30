@@ -70,7 +70,9 @@ func run(cmd *cobra.Command, args []string) error {
 	for _, file := range files {
 		rows := diff.Render(file, width)
 		for _, row := range rows {
-			fmt.Fprintln(os.Stdout, row)
+			if _, err := fmt.Fprintln(os.Stdout, row); err != nil {
+				return fmt.Errorf("writing output: %w", err)
+			}
 		}
 	}
 
