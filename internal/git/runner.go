@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -76,9 +77,15 @@ func (ExecRunner) Run(args []string) (io.Reader, error) {
 	return bytes.NewReader(out), nil
 }
 
-// NormalizeCRLF replaces every CRLF (\r\n) sequence in b with LF (\n).
+// NormalizeCRLF replaces CRLF (\r\n) sequences in b with LF (\n), but only
+// when running on Windows. Unix git never emits CRLF in its diff output, so
+// applying the replacement unconditionally would corrupt content \r bytes in
+// diffs of Windows-formatted files (D-09).
 // It is exported so that runner_test.go can test the normalization logic
 // directly without spawning a subprocess.
 func NormalizeCRLF(b []byte) []byte {
+	if runtime.GOOS != "windows" {
+		return b
+	}
 	return bytes.ReplaceAll(b, []byte{0x0d, 0x0a}, []byte{0x0a})
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"runtime"
 	"testing"
 
 	"github.com/alturd/alturd/internal/git"
@@ -110,16 +111,25 @@ func TestFakeRunnerCapturesArgs(t *testing.T) {
 // fakeRunner that returns CRLF bytes and verify the normalization result.
 // The actual ExecRunner CRLF normalization is tested via the unit-testable helper.
 func TestCRLFNormalization(t *testing.T) {
-	// Verify that bytes with CRLF are normalized to LF.
-	// We test this by calling git.NormalizeCRLF (the helper we'll expose for testing).
+	// NormalizeCRLF is a no-op on non-Windows platforms because Unix git never
+	// emits CRLF in diff output. On Windows it strips the transport-level \r so
+	// that downstream parsers see LF-terminated lines.
 	input := []byte("line1\r\nline2\r\nline3\r\n")
 	got := git.NormalizeCRLF(input)
-	want := []byte("line1\nline2\nline3\n")
-	if !bytes.Equal(got, want) {
-		t.Errorf("NormalizeCRLF: got %q, want %q", got, want)
+
+	if runtime.GOOS == "windows" {
+		want := []byte("line1\nline2\nline3\n")
+		if !bytes.Equal(got, want) {
+			t.Errorf("NormalizeCRLF on Windows: got %q, want %q", got, want)
+		}
+	} else {
+		// Non-Windows: function is a no-op; CRLF bytes must be preserved.
+		if !bytes.Equal(got, input) {
+			t.Errorf("NormalizeCRLF on non-Windows: got %q, want input unchanged %q", got, input)
+		}
 	}
 
-	// Verify that LF-only content is unchanged.
+	// LF-only content is always returned unchanged on all platforms.
 	lf := []byte("line1\nline2\n")
 	got2 := git.NormalizeCRLF(lf)
 	if !bytes.Equal(got2, lf) {
