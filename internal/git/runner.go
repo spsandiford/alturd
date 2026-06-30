@@ -63,6 +63,10 @@ func (ExecRunner) Run(args []string) (io.Reader, error) {
 			}
 			return nil, fmt.Errorf("git diff: %w", err)
 		}
+		// Fallthrough: unrecognised exit code — surface git's stderr if available.
+		if exitErr != nil && len(exitErr.Stderr) > 0 {
+			return nil, fmt.Errorf("git diff: %s", strings.TrimRight(string(exitErr.Stderr), "\n"))
+		}
 		return nil, fmt.Errorf("git diff: %w", err)
 	}
 
