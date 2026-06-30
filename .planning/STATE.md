@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 02
-current_phase_name: git-layer-cli
+current_phase: 3
+current_phase_name: TUI Application
 status: verifying
 stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-06-29T20:51:43.627Z"
-last_activity: 2026-06-29
-last_activity_desc: Phase 02 execution started
+last_updated: "2026-06-30T20:18:19.619Z"
+last_activity: 2026-06-30
+last_activity_desc: Phase 02 complete, transitioned to Phase 3
 progress:
   total_phases: 4
   completed_phases: 2
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-27)
 
 **Core value:** A developer can download a single binary, run `alturd` in any git repository, and navigate every changed file and every individual diff hunk with fast keyboard-driven controls — no runtime dependencies required.
-**Current focus:** Phase 02 — git-layer-cli
+**Current focus:** Phase 03 — TUI Application
 
 ## Current Position
 
-Phase: 02 (git-layer-cli) — EXECUTING
-Plan: 3 of 3
+Phase: 3 — TUI Application
+Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-06-29 — Phase 02 execution started
+Last activity: 2026-06-30 — Phase 02 complete, transitioned to Phase 3
 
 Progress: [████████████████████] 3/3 plans (100%)
 
@@ -39,7 +39,7 @@ Progress: [████████████████████] 3/3 pla
 
 **Velocity:**
 
-- Total plans completed: 3
+- Total plans completed: 6
 - Average duration: —
 - Total execution time: —
 
@@ -48,6 +48,7 @@ Progress: [████████████████████] 3/3 pla
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 3 | - | - |
+| 02 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -77,7 +78,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 2 Plan 2: charmbracelet/log v1.0.0 SetOutput confirmed as SetOutput(w io.Writer)
 - [Phase ?]: Phase 2 Plan 2: xdg.Reload used in tests with LIFO cleanup to isolate XDG global state between subtests
 - [Phase ?]: Phase 2 Plan 3: TestMain subprocess pattern used for integration tests (t.TempDir lifecycle mismatch prevented sync.Once approach)
-- [Phase ?]: Phase 2 Plan 3: var version declared as var not const so goreleaser -ldflags can override in Phase 4 (D-03)
+- Phase 2: var version declared as var not const so goreleaser -ldflags can override in Phase 4 (D-03)
+- Phase 2: git diff exits 129 (not 128) on some git versions outside a repo — stderr message is the only reliable discriminator
+- Phase 2: TestMain subprocess pattern for integration tests (t.TempDir lifecycle prevents per-test binary approach)
 
 ### Pending Todos
 
@@ -86,10 +89,10 @@ None.
 ### Blockers/Concerns
 
 - Phase 3 research flag: in-pane search ANSI-aware marker insertion is non-trivial
-- Go not installed system-wide on dev host — needs proper install before Phase 2 execution
+- Phase 3 research flag: in-pane search ANSI-aware marker insertion is non-trivial
 
 ## Session Continuity
 
-Last session: 2026-06-29T20:51:39.482Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-06-30
+Stopped at: Phase 02 complete (UAT passed, fix committed), transitioned to Phase 3
 Resume file: None

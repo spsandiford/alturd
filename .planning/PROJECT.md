@@ -16,6 +16,7 @@ A developer can download a single binary, run `alturd` in any git repository, an
 - ✓ **DIFF-03**: Line-level diff colors (Added/Removed/Modified 256-colour backgrounds) — Phase 1 (Render/lineBg() implemented and tested)
 - ✓ **DIFF-04**: Intra-line character-level change markers on Modified rows — Phase 1 (applyIntraLine() + DiffMain with 100ms timeout guard)
 - ✓ **DIFF-05**: Full-file and hunk-only render modes via RenderMode enum — Phase 1 (wired; TUI toggle in Phase 3)
+- ✓ **CLI-01**: `alturd [<refs>...] [-- <paths>...]` ref grammar — Phase 2 (ParseRefArgs covers all six invocation forms; exit codes 0/1/127 verified)
 
 ### Active
 
@@ -23,10 +24,6 @@ A developer can download a single binary, run `alturd` in any git repository, an
 - [ ] **TREE-02**: Tree pane adapts width — wider when focused (45 col), narrower when not (24 col, truncated filenames)
 - [ ] **TREE-03**: `]`/`[` cycles between changed files; `a` toggles changed-only vs full-repo tree
 - [ ] **DIFF-01**: Side-by-side diff pane renders old and new file content in aligned parallel columns
-- [ ] **DIFF-02**: Syntax highlighting via Chroma (700+ languages, same Pygments-compatible language set)
-- [ ] **DIFF-03**: Line-level diff colors (added/removed/modified) layered with syntax highlighting
-- [ ] **DIFF-04**: Intra-line word/character-level change markers on modified lines
-- [ ] **DIFF-05**: Full-file mode (default) renders entire file with changes inline; hunk-only mode is alternate
 - [ ] **DIFF-06**: `v` hotkey toggles full-file ↔ hunk-only without reload
 - [ ] **NAV-01**: `n`/`N` jumps between hunks/changes; in full-file mode centers each change with context
 - [ ] **NAV-02**: `Tab` switches focus between file tree and diff pane
@@ -80,6 +77,9 @@ A developer can download a single binary, run `alturd` in any git repository, an
 | Reuse Python fixture corpus | 12-scenario diff fixture corpus in `tests/fixtures/diff/` validates edge cases; porting the fixtures eliminates re-discovering parser bugs | Confirmed — Phase 1; hand-crafted 13-scenario Go corpus (Python repo unavailable); 3 fixtures needed @@ count fixes |
 | GitHub Actions + goreleaser for distribution | goreleaser handles cross-compilation matrix and GitHub Release artifact management cleanly | — Pending |
 | Go module go directive set to 1.25 | chroma/v2 v2.27.0 requires `go 1.25` minimum; CLAUDE.md "Go 1.22+" constraint is satisfied by 1.25 | Confirmed — Phase 1 |
+| `git diff` exit code unreliable for "not a git repo" | Exits 129 (not 128) on Git 2.39+ on Linux; stderr message "not a git repository" is the only portable discriminator | Confirmed — Phase 2 UAT |
+| `var version` not `const` for goreleaser override | goreleaser `-ldflags "-X main.version=<tag>"` requires a `var` (linker cannot set a `const`) | Confirmed — Phase 2 |
+| TestMain subprocess pattern for integration tests | `t.TempDir()` is cleaned up when the first subtest finishes, invalidating a shared binary path; `os.MkdirTemp` + `defer os.RemoveAll` in `TestMain` persists the binary for the full test run | Confirmed — Phase 2 |
 
 ## Evolution
 
@@ -99,4 +99,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-27 after Phase 01*
+*Last updated: 2026-06-30 after Phase 02*
