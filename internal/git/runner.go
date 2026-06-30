@@ -50,23 +50,26 @@ func (ExecRunner) Run(args []string) (io.Reader, error) {
 		if errors.As(err, &execErr) && errors.Is(execErr.Err, exec.ErrNotFound) {
 			return nil, ErrGitNotFound
 		}
-		// Check for git exit code 128 — inspect stderr to distinguish "not a git
-		// repository" from other fatals (invalid refs, corrupt objects, etc.).
+		// Check stderr message before exit code: git diff exits 128 on some builds,
+		// 129 on others (128+1), and 1 on some versions when outside a working tree.
+		// The message is the only reliable discriminator across git versions.
 		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) && exitErr.ExitCode() == 128 {
-			stderr := strings.ToLower(strings.TrimSpace(string(exitErr.Stderr)))
-			if strings.Contains(stderr, "not a git repository") {
+		if errors.As(err, &exitErr) {
+			stderrStr := string(exitErr.Stderr)
+			if strings.Contains(strings.ToLower(stderrStr), "not a git repository") {
 				return nil, ErrNotGitRepo
 			}
 			// Other exit-128 fatals: surface git's actual message.
-			if len(exitErr.Stderr) > 0 {
-				return nil, fmt.Errorf("git diff: %s", strings.TrimRight(string(exitErr.Stderr), "\n"))
+			if exitErr.ExitCode() == 128 {
+				if len(exitErr.Stderr) > 0 {
+					return nil, fmt.Errorf("git diff: %s", strings.TrimRight(stderrStr, "\n"))
+				}
+				return nil, fmt.Errorf("git diff: %w", err)
 			}
-			return nil, fmt.Errorf("git diff: %w", err)
-		}
-		// Fallthrough: unrecognised exit code — surface git's stderr if available.
-		if exitErr != nil && len(exitErr.Stderr) > 0 {
-			return nil, fmt.Errorf("git diff: %s", strings.TrimRight(string(exitErr.Stderr), "\n"))
+			// Fallthrough: unrecognised exit code — surface git's stderr if available.
+			if len(exitErr.Stderr) > 0 {
+				return nil, fmt.Errorf("git diff: %s", strings.TrimRight(stderrStr, "\n"))
+			}
 		}
 		return nil, fmt.Errorf("git diff: %w", err)
 	}
