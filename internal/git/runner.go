@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"strings"
 )
 
 // Runner is the subprocess boundary for git invocations.
@@ -48,10 +49,19 @@ func (ExecRunner) Run(args []string) (io.Reader, error) {
 		if errors.As(err, &execErr) && errors.Is(execErr.Err, exec.ErrNotFound) {
 			return nil, ErrGitNotFound
 		}
-		// Check for git exit code 128 — "not a git repository".
+		// Check for git exit code 128 — inspect stderr to distinguish "not a git
+		// repository" from other fatals (invalid refs, corrupt objects, etc.).
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) && exitErr.ExitCode() == 128 {
-			return nil, ErrNotGitRepo
+			stderr := strings.ToLower(strings.TrimSpace(string(exitErr.Stderr)))
+			if strings.Contains(stderr, "not a git repository") {
+				return nil, ErrNotGitRepo
+			}
+			// Other exit-128 fatals: surface git's actual message.
+			if len(exitErr.Stderr) > 0 {
+				return nil, fmt.Errorf("git diff: %s", strings.TrimRight(string(exitErr.Stderr), "\n"))
+			}
+			return nil, fmt.Errorf("git diff: %w", err)
 		}
 		return nil, fmt.Errorf("git diff: %w", err)
 	}
