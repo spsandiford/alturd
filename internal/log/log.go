@@ -11,6 +11,7 @@ package applog
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	charmlog "github.com/charmbracelet/log"
 
@@ -49,6 +50,10 @@ func Init() (*os.File, error) {
 // truncateLog keeps the LAST maxLogSize bytes of the file, discarding older
 // entries. This retains the most recent log content (tail), unlike
 // os.Truncate which would retain the head (oldest entries).
+//
+// The replacement is written to a sibling temp file and renamed into place so
+// that a crash or OOM kill between write and rename leaves the original log
+// intact rather than zero-truncated.
 func truncateLog(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -57,8 +62,20 @@ func truncateLog(path string) error {
 	if int64(len(data)) > maxLogSize {
 		data = data[int64(len(data))-maxLogSize:]
 	}
-	if err := os.WriteFile(path, data, 0600); err != nil {
-		return fmt.Errorf("writing truncated log: %w", err)
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".alturd-log-*.tmp")
+	if err != nil {
+		return fmt.Errorf("creating temp log: %w", err)
 	}
-	return nil
+	tmpName := tmp.Name()
+	if _, werr := tmp.Write(data); werr != nil {
+		tmp.Close()
+		os.Remove(tmpName)
+		return fmt.Errorf("writing truncated log: %w", werr)
+	}
+	if cerr := tmp.Close(); cerr != nil {
+		os.Remove(tmpName)
+		return fmt.Errorf("closing temp log: %w", cerr)
+	}
+	return os.Rename(tmpName, path)
 }
