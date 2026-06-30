@@ -22,8 +22,6 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic("failed to create temp dir for binary: " + err.Error())
 	}
-	defer os.RemoveAll(dir)
-
 	alturdBin = filepath.Join(dir, "alturd")
 	// go test cwd is the package directory (cmd/alturd); go up two levels to
 	// reach the module root so 'go build ./cmd/alturd' resolves correctly.
@@ -33,7 +31,9 @@ func TestMain(m *testing.M) {
 		panic("failed to build alturd: " + err.Error() + "\noutput: " + string(out))
 	}
 
-	os.Exit(m.Run())
+	code := m.Run()
+	os.RemoveAll(dir) // explicit cleanup before exit — defer is bypassed by os.Exit
+	os.Exit(code)
 }
 
 // TestVersionExitsZeroNoLog asserts that --version exits 0 and creates no log
