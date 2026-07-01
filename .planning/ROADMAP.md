@@ -85,8 +85,25 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `n`/`N` jumps between hunks; in full-file mode each hunk is centered with surrounding context; `v` toggles full-file/hunk-only view without reloading git data; `q` exits with code 0
   5. `/` opens in-pane search, typed text highlights matching substrings in the diff pane, and `n`/`N` navigates between matches using an ANSI-aware scanner
 
-**Plans**: TBD
+**Plans**: 5 plans
 **UI hint**: yes
+
+**Wave 1** *(parallel — no shared files)*
+
+- [ ] 03-01-PLAN.md — internal/diff extensions: Render(mode) 3-arg signature (DIFF-06) + HunkStartRows (NAV-01) + tests
+- [ ] 03-02-PLAN.md — internal/tui pure utilities: tree builder/collapse (TREE-01) + ANSI-aware findMatches (SEARCH-01) + tests
+
+**Wave 2** *(blocked on Wave 1 — model consumes diff + tui utilities)*
+
+- [ ] 03-03-PLAN.md — internal/tui/model.go core: state machine, View split layout, normal-mode dispatch (NAV-01..04, TREE-01/02, DIFF-06) + v2 deps + tests
+
+**Wave 3** *(blocked on Wave 2 — extends model.go)*
+
+- [ ] 03-04-PLAN.md — internal/tui/model.go search (SEARCH-01) + full-repo tree toggle via git ls-tree (TREE-03) + tests
+
+**Wave 4** *(blocked on Wave 3 — wires the completed model into the binary)*
+
+- [ ] 03-05-PLAN.md — cmd/alturd/main.go: bubbletea launch replacing stdout loop (D-06) + empty-state guard + integration gate + human smoke check
 
 ### Phase 4: Config + Theming + Difftool + Distribution
 
@@ -113,5 +130,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Diff Model | 3/3 | Complete    | 2026-06-26 |
 | 2. Git Layer + CLI | 3/3 | Complete    | 2026-06-29 |
-| 3. TUI Application | 0/TBD | Not started | - |
+| 3. TUI Application | 0/5 | Not started | - |
 | 4. Config + Theming + Difftool + Distribution | 0/TBD | Not started | - |
