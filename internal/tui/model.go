@@ -5,6 +5,7 @@
 package tui
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"runtime"
@@ -19,6 +20,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/alturd/alturd/internal/diff"
+	"github.com/alturd/alturd/internal/git"
 )
 
 type pane int
@@ -75,6 +77,13 @@ func NewModel(files []*gitdiff.File) model {
 	nodes := buildTree(filePaths(files), statusMap)
 	flat := flattenTree(nodes, 0)
 
+	// HighlightStyle: reverse video so matches are visible on any background
+	// (RESEARCH Open Question 2).
+	highlightStyle := lipgloss.NewStyle().Reverse(true)
+	diffVP := viewport.New(viewport.WithWidth(0), viewport.WithHeight(0))
+	diffVP.HighlightStyle = highlightStyle
+	diffVP.SelectedHighlightStyle = highlightStyle
+
 	return model{
 		files:       files,
 		focusedPane: diffFocused,
@@ -83,7 +92,7 @@ func NewModel(files []*gitdiff.File) model {
 		treeNodes:   []*TreeNode{nodes},
 		treeFlat:    flat,
 		treeVP:      viewport.New(viewport.WithWidth(0), viewport.WithHeight(0)),
-		diffVP:      viewport.New(viewport.WithWidth(0), viewport.WithHeight(0)),
+		diffVP:      diffVP,
 	}
 }
 
@@ -116,6 +125,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
+	}
+
+	// Forward non-key messages to the search textinput when search is active.
+	// This allows bubbletea internal cursor blink and focus messages to reach
+	// the textinput even when they are not tea.KeyPressMsg.
+	if m.searchMode {
+		var cmd tea.Cmd
+		m.searchInput, cmd = m.searchInput.Update(msg)
+		m.recomputeSearch()
+		return m, cmd
 	}
 
 	return m, nil
@@ -231,6 +250,48 @@ func (m *model) renderTree() string {
 }
 
 func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	// Search mode: dispatch before the normal-mode switch (SEARCH-01, D-13/D-14/D-15/D-16).
+	if m.searchMode {
+		switch msg.String() {
+		case "esc":
+			// D-15: close search, clear state, restore viewport height.
+			m.searchMode = false
+			m.searchInput.Reset()
+			m.searchMatches = nil
+			m.diffVP.SetHighlights(nil)
+			m.handleResize(m.termWidth, m.termHeight)
+		case "n":
+			// D-14: navigate to next match.
+			m.diffVP.HighlightNext()
+		case "N":
+			// D-14: navigate to previous match.
+			m.diffVP.HighlightPrevious()
+		case "]":
+			// D-16: close search then cycle to next file.
+			m.searchMode = false
+			m.searchInput.Reset()
+			m.searchMatches = nil
+			m.diffVP.SetHighlights(nil)
+			m.handleResize(m.termWidth, m.termHeight)
+			m.handleFileCycle(true)
+		case "[":
+			// D-16: close search then cycle to previous file.
+			m.searchMode = false
+			m.searchInput.Reset()
+			m.searchMatches = nil
+			m.diffVP.SetHighlights(nil)
+			m.handleResize(m.termWidth, m.termHeight)
+			m.handleFileCycle(false)
+		default:
+			// Forward typed characters to the textinput (SEARCH-01, D-13).
+			var cmd tea.Cmd
+			m.searchInput, cmd = m.searchInput.Update(msg)
+			m.recomputeSearch()
+			return m, cmd
+		}
+		return m, nil
+	}
+
 	switch msg.String() {
 	case "q":
 		return m, tea.Quit
@@ -254,6 +315,14 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.handleFileCycle(true)
 	case "[":
 		m.handleFileCycle(false)
+	case "/":
+		// D-13: open search — shrink viewport by 1 row, focus textinput (SEARCH-01).
+		m.searchMode = true
+		m.handleResize(m.termWidth, m.termHeight)
+		return m, m.searchInput.Focus()
+	case "a":
+		// D-11: toggle between changed-files-only and full-repo tree (TREE-03).
+		m.toggleAllFiles()
 	default:
 		var cmd tea.Cmd
 		m.diffVP, cmd = m.diffVP.Update(msg)
@@ -303,6 +372,69 @@ func (m *model) hunkPrev() {
 		m.currentHunk--
 	}
 	m.diffVP.SetYOffset(max(0, m.hunkRows[m.currentHunk]-m.diffVP.Height()/2))
+}
+
+// recomputeSearch refreshes searchMatches from the current textinput value and
+// feeds the results to the diff viewport (SEARCH-01, D-13; RESEARCH Pitfalls 5 and 7).
+// Content is read from the viewport via GetContent(); findMatches strips ANSI before
+// searching so positions are plain-text offsets compatible with SetHighlights.
+func (m *model) recomputeSearch() {
+	query := m.searchInput.Value()
+	content := m.diffVP.GetContent()
+	m.searchMatches = findMatches(content, query)
+	m.diffVP.SetHighlights(m.searchMatches)
+}
+
+// toggleAllFiles toggles between the changed-files-only tree and the full-repo
+// tree (TREE-03, D-11). On the first 'a' press it runs git ls-tree to load all
+// repo paths and caches them in allFilePaths; subsequent presses reuse the cache.
+// If the git subprocess fails, the toggle is silently undone so the TUI keeps
+// showing the changed-files tree without crashing.
+func (m *model) toggleAllFiles() {
+	m.allFiles = !m.allFiles
+
+	if m.allFiles && len(m.allFilePaths) == 0 {
+		// Lazy-load full repo path list via git ls-tree (RESEARCH git ls-tree section).
+		// --full-tree makes paths root-relative regardless of cwd.
+		reader, err := git.ExecRunner{}.Run([]string{
+			"ls-tree", "-r", "--full-tree", "--name-only", "HEAD",
+		})
+		if err != nil {
+			// Do not crash the TUI; revert the toggle.
+			m.allFiles = false
+			return
+		}
+		var paths []string
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line != "" {
+				paths = append(paths, line)
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			m.allFiles = false
+			return
+		}
+		m.allFilePaths = paths
+	}
+
+	// Rebuild the tree over either the full repo paths or the changed-files paths.
+	statusMap := buildStatusMap(m.files)
+	var paths []string
+	if m.allFiles {
+		paths = m.allFilePaths
+	} else {
+		paths = filePaths(m.files)
+	}
+	root := buildTree(paths, statusMap)
+	m.treeNodes = []*TreeNode{root}
+	m.treeFlat = flattenTree(root, 0)
+	// Clamp treeIdx into the valid range.
+	if m.treeIdx >= len(m.treeFlat) {
+		m.treeIdx = max(0, len(m.treeFlat)-1)
+	}
+	m.refreshTreeContent()
 }
 
 func max(a, b int) int {
