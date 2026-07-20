@@ -57,7 +57,7 @@ const (
 // to Modified rows because the intra-line diff operates on raw Content; composing
 // chroma ANSI sequences with intra-line span offsets requires ANSI-aware offset
 // mapping that is deferred to a future phase. See applyIntraLine.
-func Render(file *gitdiff.File, width int) []string {
+func Render(file *gitdiff.File, width int, mode RenderMode) []string {
 	if width < 4 {
 		width = 4
 	}
@@ -65,7 +65,7 @@ func Render(file *gitdiff.File, width int) []string {
 	colWidth := width/2 - 1
 
 	// Align produces side-by-side RowPairs; Highlight populates ANSI fields.
-	pairs := Align(file, FullFile)
+	pairs := Align(file, mode)
 	// Use effectiveName so deleted files (NewName="") get their OldName lexer.
 	_ = Highlight(pairs, effectiveName(file)) // non-fatal; ANSI may fall back to Content
 

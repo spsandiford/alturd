@@ -68,7 +68,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 	// Render each file to stdout as ANSI rows (D-06).
 	for _, file := range files {
-		rows := diff.Render(file, width)
+		rows := diff.Render(file, width, diff.FullFile)
 		for _, row := range rows {
 			if _, err := fmt.Fprintln(os.Stdout, row); err != nil {
 				return fmt.Errorf("writing output: %w", err)

@@ -47,7 +47,7 @@ var (
 func renderFile(t *testing.T, fixture string, width int) ([]string, string) {
 	t.Helper()
 	file := parseFirst(t, fixture)
-	rows := diff.Render(file, width)
+	rows := diff.Render(file, width, diff.FullFile)
 	return rows, file.NewName
 }
 
@@ -161,7 +161,7 @@ func TestRender(t *testing.T) {
 					}
 				}()
 				file := parseFirst(t, fixture)
-				_ = diff.Render(file, testWidth)
+				_ = diff.Render(file, testWidth, diff.FullFile)
 			})
 		}
 	})
@@ -170,8 +170,8 @@ func TestRender(t *testing.T) {
 		// Calling Render twice with different widths must produce independent
 		// results — no global state mutation (D-04).
 		file := parseFirst(t, "simple.diff")
-		rows80 := diff.Render(file, 80)
-		rows160 := diff.Render(file, testWidth)
+		rows80 := diff.Render(file, 80, diff.FullFile)
+		rows160 := diff.Render(file, testWidth, diff.FullFile)
 		if len(rows80) == 0 || len(rows160) == 0 {
 			t.Fatal("Render: got 0 rows for at least one width")
 		}
@@ -180,7 +180,7 @@ func TestRender(t *testing.T) {
 			t.Errorf("Render: different row counts for width 80 (%d) vs 160 (%d)", len(rows80), len(rows160))
 		}
 		// Re-calling must not change the row count (no global mutation).
-		rows160b := diff.Render(file, testWidth)
+		rows160b := diff.Render(file, testWidth, diff.FullFile)
 		if len(rows160) != len(rows160b) {
 			t.Errorf("Render: second call with same width produces different count (%d vs %d)", len(rows160), len(rows160b))
 		}
