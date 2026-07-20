@@ -234,3 +234,45 @@ func TestAlign(t *testing.T) {
 		}
 	})
 }
+
+func TestHunkStartRows(t *testing.T) {
+	t.Run("simple_diff_one_fragment_at_row_zero", func(t *testing.T) {
+		file := parseFirst(t, "simple.diff")
+		rows := diff.HunkStartRows(file, diff.FullFile)
+		if len(rows) == 0 {
+			t.Fatal("HunkStartRows(simple.diff): got 0 entries, want >= 1")
+		}
+		if rows[0] != 0 {
+			t.Errorf("HunkStartRows(simple.diff): rows[0] = %d, want 0", rows[0])
+		}
+	})
+
+	t.Run("multi_hunk_ascending_rows", func(t *testing.T) {
+		file := parseFirst(t, "multi-hunk.diff")
+		rows := diff.HunkStartRows(file, diff.FullFile)
+		for i := 1; i < len(rows); i++ {
+			if rows[i] <= rows[i-1] {
+				t.Errorf("HunkStartRows: rows[%d]=%d not > rows[%d]=%d (must be ascending)",
+					i, rows[i], i-1, rows[i-1])
+			}
+		}
+	})
+
+	t.Run("binary_always_row_zero", func(t *testing.T) {
+		file := parseFirst(t, "binary.diff")
+		rows := diff.HunkStartRows(file, diff.FullFile)
+		if len(rows) != 1 || rows[0] != 0 {
+			t.Errorf("HunkStartRows(binary.diff): got %v, want [0]", rows)
+		}
+	})
+
+	t.Run("hunkonly_fragment_count_matches_fullfile", func(t *testing.T) {
+		file := parseFirst(t, "multi-hunk.diff")
+		fullRows := diff.HunkStartRows(file, diff.FullFile)
+		hunkRows := diff.HunkStartRows(file, diff.HunkOnly)
+		if len(hunkRows) != len(fullRows) {
+			t.Errorf("HunkStartRows fragment count: HunkOnly=%d FullFile=%d (must match)",
+				len(hunkRows), len(fullRows))
+		}
+	})
+}

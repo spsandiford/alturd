@@ -231,3 +231,61 @@ func alignText(file *gitdiff.File, mode RenderMode) []RowPair {
 	}
 	return result
 }
+
+// HunkStartRows returns the 0-based row indices (in the Render/Align output) where
+// each TextFragment begins. Used by the TUI for hunk navigation (NAV-01).
+//
+// For edge-case files (binary, mode-only, submodule) there is always exactly one
+// hunk at row 0 — the placeholder or raw-line output starts there.
+//
+// The mode parameter must match the mode passed to Render() so that row counts
+// agree with the actual viewport content.
+func HunkStartRows(file *gitdiff.File, mode RenderMode) []int {
+	if file.IsBinary || isModeOnly(file) || isSubmodule(file) {
+		return []int{0}
+	}
+	var starts []int
+	row := 0
+	for _, frag := range file.TextFragments {
+		starts = append(starts, row)
+		row += countFragmentRows(frag, mode)
+	}
+	return starts
+}
+
+// countFragmentRows returns the number of Align output rows produced by frag.
+// The pairing logic mirrors alignText: delete+add runs produce max(dels,adds) rows.
+func countFragmentRows(frag *gitdiff.TextFragment, mode RenderMode) int {
+	count := 0
+	lines := frag.Lines
+	i := 0
+	for i < len(lines) {
+		switch lines[i].Op {
+		case gitdiff.OpContext:
+			if mode == FullFile || mode == HunkOnly {
+				count++
+			}
+			i++
+		case gitdiff.OpDelete:
+			dels := 0
+			for i < len(lines) && lines[i].Op == gitdiff.OpDelete {
+				dels++
+				i++
+			}
+			adds := 0
+			for i < len(lines) && lines[i].Op == gitdiff.OpAdd {
+				adds++
+				i++
+			}
+			n := dels
+			if adds > n {
+				n = adds
+			}
+			count += n
+		case gitdiff.OpAdd:
+			count++
+			i++
+		}
+	}
+	return count
+}
