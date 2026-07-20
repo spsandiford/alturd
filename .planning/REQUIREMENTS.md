@@ -34,11 +34,11 @@
 
 - [ ] **TREE-01**: User sees a file tree of all changed files with [A]/[M]/[D]/[R] colored status markers, dirs-first sort, and compact-folder layout
 - [ ] **TREE-02**: Tree pane widens to 45 columns when focused and contracts to 24 columns (truncated filenames) when not focused, with animated transition
-- [ ] **TREE-03**: User can press `a` to toggle between changed-files-only view and full-repo tree view
+- [x] **TREE-03**: User can press `a` to toggle between changed-files-only view and full-repo tree view
 
 ### Search
 
-- [ ] **SEARCH-01**: User can press `/` to open in-pane search with match highlighting; `n`/`N` navigates between matches
+- [x] **SEARCH-01**: User can press `/` to open in-pane search with match highlighting; `n`/`N` navigates between matches
 
 ### Theming & Config
 
@@ -109,8 +109,8 @@
 | NAV-04 | Phase 3 | Pending |
 | TREE-01 | Phase 3 | Pending |
 | TREE-02 | Phase 3 | Pending |
-| TREE-03 | Phase 3 | Pending |
-| SEARCH-01 | Phase 3 | Pending |
+| TREE-03 | Phase 3 | Complete |
+| SEARCH-01 | Phase 3 | Complete |
 | THEME-01 | Phase 4 | Pending |
 | CONFIG-01 | Phase 4 | Pending |
 | CONFIG-02 | Phase 4 | Pending |
