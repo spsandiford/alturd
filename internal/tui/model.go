@@ -1,0 +1,313 @@
+// Package tui implements the bubbletea v2 terminal UI for alturd.
+// It owns all interactive state: pane layout, file selection, search mode,
+// and hunk navigation. Data is pre-loaded by cmd/alturd/main.go before
+// tea.NewProgram is called (D-06).
+package tui
+
+import (
+	"fmt"
+	"os"
+	"runtime"
+	"strings"
+	"time"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	"charm.land/lipgloss/v2"
+	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"golang.org/x/term"
+
+	"github.com/alturd/alturd/internal/diff"
+)
+
+type pane int
+
+const (
+	treeFocused pane = iota
+	diffFocused
+)
+
+const (
+	treeWidthUnfocused  = 24
+	treeWidthFocused    = 45
+	windowsPollInterval = time.Second / 4
+)
+
+// resizePollMsg is emitted by the Windows resize tick (issue #1601).
+type resizePollMsg struct{}
+
+type model struct {
+	files []*gitdiff.File
+
+	ready       bool
+	termWidth   int
+	termHeight  int
+	focusedPane pane
+	treeWidth   int
+
+	treeVP    viewport.Model
+	treeNodes []*TreeNode
+	treeFlat  []flatRow
+	treeIdx   int
+	allFiles  bool
+	allFilePaths []string
+
+	diffVP      viewport.Model
+	currentFile int
+	renderMode  diff.RenderMode
+	hunkRows    []int
+	currentHunk int
+
+	searchMode    bool
+	searchInput   textinput.Model
+	searchMatches [][]int
+}
+
+// NewModel creates the initial bubbletea model. files must be non-nil (may be empty).
+// Called from cmd/alturd/main.go after git+parse complete (D-06).
+func NewModel(files []*gitdiff.File) model {
+	ti := textinput.New()
+	ti.Prompt = "/"
+	ti.Placeholder = "search..."
+
+	statusMap := buildStatusMap(files)
+	nodes := buildTree(filePaths(files), statusMap)
+	flat := flattenTree(nodes, 0)
+
+	return model{
+		files:       files,
+		focusedPane: diffFocused,
+		treeWidth:   treeWidthUnfocused,
+		searchInput: ti,
+		treeNodes:   []*TreeNode{nodes},
+		treeFlat:    flat,
+		treeVP:      viewport.New(viewport.WithWidth(0), viewport.WithHeight(0)),
+		diffVP:      viewport.New(viewport.WithWidth(0), viewport.WithHeight(0)),
+	}
+}
+
+func (m model) Init() tea.Cmd {
+	if runtime.GOOS == "windows" {
+		return tea.Tick(windowsPollInterval, func(_ time.Time) tea.Msg {
+			return resizePollMsg{}
+		})
+	}
+	return nil
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.handleResize(msg.Width, msg.Height)
+		return m, nil
+
+	case resizePollMsg:
+		w, h, err := term.GetSize(int(os.Stdout.Fd()))
+		if err == nil && (w != m.termWidth || h != m.termHeight) {
+			m.handleResize(w, h)
+		}
+		if runtime.GOOS == "windows" {
+			return m, tea.Tick(windowsPollInterval, func(_ time.Time) tea.Msg {
+				return resizePollMsg{}
+			})
+		}
+		return m, nil
+
+	case tea.KeyPressMsg:
+		return m.handleKey(msg)
+	}
+
+	return m, nil
+}
+
+func (m model) View() tea.View {
+	if !m.ready {
+		return tea.NewView("")
+	}
+
+	fileName := ""
+	if len(m.files) > 0 {
+		f := m.files[m.currentFile]
+		if f.NewName != "" && f.NewName != "/dev/null" {
+			fileName = f.NewName
+		} else {
+			fileName = f.OldName
+		}
+	}
+
+	statusBar := fmt.Sprintf("alturd — %s (%d of %d changed files)",
+		fileName, m.currentFile+1, len(m.files))
+	if m.searchMode {
+		statusBar += " [SEARCH]"
+	}
+	statusBar = lipgloss.NewStyle().Width(m.termWidth).Render(statusBar)
+
+	treeStr := m.treeVP.View()
+	diffStr := m.diffVP.View()
+
+	var searchBar string
+	if m.searchMode {
+		searchBar = "\n" + m.searchInput.View()
+	}
+
+	body := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		treeStr,
+		"│",
+		diffStr+searchBar,
+	)
+
+	return tea.NewView(statusBar + "\n" + body)
+}
+
+func (m *model) handleResize(w, h int) {
+	m.termWidth = w
+	m.termHeight = h
+	m.ready = true
+
+	contentH := h - 1
+	if m.searchMode {
+		contentH--
+	}
+	diffW := w - m.treeWidth - 1
+
+	m.treeVP.SetWidth(m.treeWidth)
+	m.treeVP.SetHeight(contentH)
+	m.diffVP.SetWidth(diffW)
+	m.diffVP.SetHeight(contentH)
+
+	m.refreshDiffContent()
+	m.refreshTreeContent()
+}
+
+func (m *model) refreshDiffContent() {
+	if len(m.files) == 0 {
+		return
+	}
+	diffW := m.termWidth - m.treeWidth - 1
+	rows := diff.Render(m.files[m.currentFile], diffW, m.renderMode)
+	m.hunkRows = diff.HunkStartRows(m.files[m.currentFile], m.renderMode)
+	m.currentHunk = 0
+	m.diffVP.SetContent(strings.Join(rows, "\n"))
+}
+
+func (m *model) refreshTreeContent() {
+	m.diffVP.SetWidth(m.termWidth - m.treeWidth - 1)
+	content := m.renderTree()
+	m.treeVP.SetContent(content)
+}
+
+func (m *model) renderTree() string {
+	var sb strings.Builder
+	for i, row := range m.treeFlat {
+		indent := strings.Repeat("  ", row.depth)
+		var line string
+		if row.node.IsDir {
+			glyph := "▸"
+			if row.node.expanded {
+				glyph = "▾"
+			}
+			line = indent + glyph + " " + row.node.Name
+		} else {
+			marker := row.node.Status
+			if marker == "" {
+				marker = "   "
+			} else {
+				marker = marker + " "
+			}
+			line = indent + marker + row.node.Name
+		}
+		line = lipgloss.NewStyle().MaxWidth(m.treeWidth).Render(line)
+		if i == m.treeIdx {
+			line = lipgloss.NewStyle().Reverse(true).Render(line)
+		}
+		if i > 0 {
+			sb.WriteByte('\n')
+		}
+		sb.WriteString(line)
+	}
+	return sb.String()
+}
+
+func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q":
+		return m, tea.Quit
+	case "Q":
+		os.Exit(1)
+	case "tab":
+		m.toggleFocus()
+		m.handleResize(m.termWidth, m.termHeight)
+	case "v":
+		if m.renderMode == diff.FullFile {
+			m.renderMode = diff.HunkOnly
+		} else {
+			m.renderMode = diff.FullFile
+		}
+		m.refreshDiffContent()
+	case "n":
+		m.hunkNext()
+	case "N":
+		m.hunkPrev()
+	case "]":
+		m.handleFileCycle(true)
+	case "[":
+		m.handleFileCycle(false)
+	default:
+		var cmd tea.Cmd
+		m.diffVP, cmd = m.diffVP.Update(msg)
+		return m, cmd
+	}
+	return m, nil
+}
+
+func (m *model) toggleFocus() {
+	if m.focusedPane == treeFocused {
+		m.focusedPane = diffFocused
+		m.treeWidth = treeWidthUnfocused
+	} else {
+		m.focusedPane = treeFocused
+		m.treeWidth = treeWidthFocused
+	}
+}
+
+func (m *model) handleFileCycle(forward bool) {
+	if len(m.files) == 0 {
+		return
+	}
+	if forward {
+		m.currentFile = (m.currentFile + 1) % len(m.files)
+	} else {
+		m.currentFile = (m.currentFile - 1 + len(m.files)) % len(m.files)
+	}
+	m.currentHunk = 0
+	m.refreshDiffContent()
+}
+
+func (m *model) hunkNext() {
+	if len(m.hunkRows) == 0 {
+		return
+	}
+	if m.currentHunk < len(m.hunkRows)-1 {
+		m.currentHunk++
+	}
+	m.diffVP.SetYOffset(max(0, m.hunkRows[m.currentHunk]-m.diffVP.Height()/2))
+}
+
+func (m *model) hunkPrev() {
+	if len(m.hunkRows) == 0 {
+		return
+	}
+	if m.currentHunk > 0 {
+		m.currentHunk--
+	}
+	m.diffVP.SetYOffset(max(0, m.hunkRows[m.currentHunk]-m.diffVP.Height()/2))
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
