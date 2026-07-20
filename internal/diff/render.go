@@ -104,9 +104,36 @@ func renderPair(p RowPair) string {
 	return joinColumns(left, right)
 }
 
+// visibleLen returns the number of visible runes in s, skipping ANSI CSI
+// escape sequences (ESC '[' <params> <terminator 0x40–0x7E>). This mirrors
+// the escape-detection logic in truncateANSI but counts instead of truncating.
+func visibleLen(s string) int {
+	visible := 0
+	i := 0
+	for i < len(s) {
+		if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '[' {
+			j := i + 2
+			for j < len(s) && (s[j] < 0x40 || s[j] > 0x7E) {
+				j++
+			}
+			if j < len(s) {
+				j++
+			}
+			i = j
+			continue
+		}
+		_, size := utf8.DecodeRuneInString(s[i:])
+		visible++
+		i += size
+	}
+	return visible
+}
+
 // renderPairWidth composes one side-by-side ANSI row from a RowPair and
 // truncates each column to colWidth visible runes. ANSI escape sequences are
 // not counted toward the visible width so they are never split mid-sequence.
+// After truncation the left column is padded with spaces to exactly colWidth
+// visible characters so the " │ " separator always appears at the same column.
 func renderPairWidth(p RowPair, colWidth int) string {
 	var left, right string
 	if p.Left.Kind == LineModifiedOld && p.Right.Kind == LineModifiedNew {
@@ -115,7 +142,11 @@ func renderPairWidth(p RowPair, colWidth int) string {
 		left = renderSide(p.Left)
 		right = renderSide(p.Right)
 	}
-	return joinColumns(truncateANSI(left, colWidth), truncateANSI(right, colWidth))
+	truncLeft := truncateANSI(left, colWidth)
+	if pad := colWidth - visibleLen(truncLeft); pad > 0 {
+		truncLeft += strings.Repeat(" ", pad)
+	}
+	return joinColumns(truncLeft, truncateANSI(right, colWidth))
 }
 
 // renderSide produces the ANSI string for one column side. It applies the
