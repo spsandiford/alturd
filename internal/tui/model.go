@@ -177,7 +177,11 @@ func (m model) View() tea.View {
 		diffStr+searchBar,
 	)
 
-	return tea.NewView(statusBar + "\n" + body)
+	v := tea.NewView(statusBar + "\n" + body)
+	// AltScreen declared per-View as required by bubbletea v2 (v1's
+	// tea.WithAltScreen() program option no longer exists in v2).
+	v.AltScreen = true
+	return v
 }
 
 func (m *model) handleResize(w, h int) {

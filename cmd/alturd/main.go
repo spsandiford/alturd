@@ -1,6 +1,6 @@
 // Package main is the entrypoint for the alturd binary.
 // It wires the cobra root command to the internal/git runner, diff parser,
-// and renderer, producing side-by-side ANSI output on stdout.
+// and bubbletea TUI model, launching an interactive side-by-side diff viewer.
 package main
 
 import (
@@ -9,11 +9,12 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/alturd/alturd/internal/diff"
 	"github.com/alturd/alturd/internal/git"
 	applog "github.com/alturd/alturd/internal/log"
+	"github.com/alturd/alturd/internal/tui"
 )
 
 // version is overridden at build time by goreleaser via -ldflags "-X main.version=<tag>".
@@ -63,31 +64,23 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("parsing diff output: %w", err)
 	}
 
-	// Determine terminal width for column sizing.
-	width := terminalWidth()
-
-	// Render each file to stdout as ANSI rows (D-06).
-	for _, file := range files {
-		rows := diff.Render(file, width, diff.FullFile)
-		for _, row := range rows {
-			if _, err := fmt.Fprintln(os.Stdout, row); err != nil {
-				return fmt.Errorf("writing output: %w", err)
-			}
-		}
+	// Empty-state guard: if there are no changed files, inform the user and exit
+	// cleanly without starting the TUI (UI-SPEC Empty State).
+	if len(files) == 0 {
+		fmt.Fprintln(os.Stderr, "No changes found.")
+		return nil
 	}
 
+	// Phase 3: launch bubbletea TUI (D-06).
+	// Data is pre-loaded; no async loading inside the model.
+	// In bubbletea v2, alternate screen is declared in the model's View()
+	// via view.AltScreen=true rather than as a program option (v2 upgrade guide).
+	m := tui.NewModel(files)
+	p := tea.NewProgram(m)
+	if _, err := p.Run(); err != nil {
+		return err
+	}
 	return nil
-}
-
-// terminalWidth returns the current terminal width when stdout is a TTY, or
-// falls back to 160 columns when stdout is redirected or GetSize fails (D-07).
-func terminalWidth() int {
-	if term.IsTerminal(int(os.Stdout.Fd())) {
-		if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 0 {
-			return w
-		}
-	}
-	return 160
 }
 
 // main executes the root command and routes exit codes.

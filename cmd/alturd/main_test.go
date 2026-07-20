@@ -71,9 +71,10 @@ func TestHelpExitsZeroNoLog(t *testing.T) {
 	}
 }
 
-// TestSmokeRunInRepoExitsZero asserts that running alturd with no args inside
-// the alturd git repository exits 0 (proves the full
-// ParseRefArgs -> ExecRunner -> diff.Parse -> diff.Render -> stdout path).
+// TestSmokeRunInRepoExitsZero asserts that running alturd in a git repo with no
+// unstaged changes exits 0 with the "No changes found." message (proves the
+// ParseRefArgs -> ExecRunner -> diff.Parse -> empty-state guard path).
+// This test does not launch the interactive TUI (no TTY in tests).
 // The test is skipped if git is not on PATH.
 func TestSmokeRunInRepoExitsZero(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
@@ -82,15 +83,45 @@ func TestSmokeRunInRepoExitsZero(t *testing.T) {
 
 	stateDir := t.TempDir()
 
-	// Run with no args from the module root (a valid git repo with git 2.39.5).
-	// go test cwd is cmd/alturd; go two levels up to reach the repo root.
-	repoRoot := filepath.Join("..", "..")
+	// Create a minimal git repo with one committed file and no working-tree
+	// changes so that `git diff` produces empty output → empty-state guard
+	// prints "No changes found." and exits 0 without starting the TUI.
+	repoDir := t.TempDir()
+	gitSetup := func(args ...string) {
+		t.Helper()
+		c := exec.Command("git", args...)
+		c.Dir = repoDir
+		c.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=test",
+			"GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test",
+			"GIT_COMMITTER_EMAIL=test@test.com",
+			"GIT_AUTHOR_DATE=2000-01-01T00:00:00Z",
+			"GIT_COMMITTER_DATE=2000-01-01T00:00:00Z",
+		)
+		if out, err := c.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	gitSetup("init")
+	gitSetup("config", "user.email", "test@test.com")
+	gitSetup("config", "user.name", "test")
+	// Write and commit one file so HEAD exists (git diff needs at least one commit).
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0644); err != nil {
+		t.Fatalf("write README: %v", err)
+	}
+	gitSetup("add", "README.md")
+	gitSetup("commit", "-m", "initial")
 
 	cmd := exec.Command(alturdBin)
-	cmd.Dir = repoRoot
+	cmd.Dir = repoDir
 	cmd.Env = append(os.Environ(), "XDG_STATE_HOME="+stateDir)
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("alturd no-args run exited non-zero: %v", err)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("alturd no-args run exited non-zero: %v\noutput: %s", err, out)
+	}
+	if !strings.Contains(string(out), "No changes found.") {
+		t.Errorf("expected 'No changes found.' in output, got: %q", string(out))
 	}
 }
 
