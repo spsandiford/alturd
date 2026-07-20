@@ -85,13 +85,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `n`/`N` jumps between hunks; in full-file mode each hunk is centered with surrounding context; `v` toggles full-file/hunk-only view without reloading git data; `q` exits with code 0
   5. `/` opens in-pane search, typed text highlights matching substrings in the diff pane, and `n`/`N` navigates between matches using an ANSI-aware scanner
 
-**Plans**: 5 plans
+**Plans**: 2/5 plans executed
 **UI hint**: yes
 
 **Wave 1** *(parallel — no shared files)*
 
-- [ ] 03-01-PLAN.md — internal/diff extensions: Render(mode) 3-arg signature (DIFF-06) + HunkStartRows (NAV-01) + tests
-- [ ] 03-02-PLAN.md — internal/tui pure utilities: tree builder/collapse (TREE-01) + ANSI-aware findMatches (SEARCH-01) + tests
+- [x] 03-01-PLAN.md — internal/diff extensions: Render(mode) 3-arg signature (DIFF-06) + HunkStartRows (NAV-01) + tests
+- [x] 03-02-PLAN.md — internal/tui pure utilities: tree builder/collapse (TREE-01) + ANSI-aware findMatches (SEARCH-01) + tests
 
 **Wave 2** *(blocked on Wave 1 — model consumes diff + tui utilities)*
 
@@ -130,5 +130,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Diff Model | 3/3 | Complete    | 2026-06-26 |
 | 2. Git Layer + CLI | 3/3 | Complete    | 2026-06-29 |
-| 3. TUI Application | 0/5 | Not started | - |
+| 3. TUI Application | 2/5 | In Progress|  |
 | 4. Config + Theming + Difftool + Distribution | 0/TBD | Not started | - |
