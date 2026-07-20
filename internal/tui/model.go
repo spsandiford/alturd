@@ -339,6 +339,18 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.handleFileCycle(true)
 	case "[":
 		m.handleFileCycle(false)
+	case "j", "down":
+		if m.focusedPane == treeFocused {
+			m.treeIdxMove(1)
+		} else {
+			m.diffVP.ScrollDown(1)
+		}
+	case "k", "up":
+		if m.focusedPane == treeFocused {
+			m.treeIdxMove(-1)
+		} else {
+			m.diffVP.ScrollUp(1)
+		}
 	case "/":
 		// D-13: open search — shrink viewport by 1 row, focus textinput (SEARCH-01).
 		m.searchMode = true
@@ -466,6 +478,62 @@ func (m *model) toggleAllFiles() {
 		m.treeIdx = max(0, len(m.treeFlat)-1)
 	}
 	m.refreshTreeContent()
+}
+
+// treeIdxMove moves the tree selection by delta rows (±1), updates treeIdx,
+// finds the nearest file in that direction to update currentFile, and scrolls
+// the tree viewport to keep the selected row in view.
+func (m *model) treeIdxMove(delta int) {
+	if len(m.treeFlat) == 0 {
+		return
+	}
+	m.treeIdx = max(0, min(m.treeIdx+delta, len(m.treeFlat)-1))
+
+	// Find the nearest file node at or past treeIdx in the direction of movement.
+	idx := m.treeIdx
+	if delta >= 0 {
+		for idx < len(m.treeFlat) && m.treeFlat[idx].node.IsDir {
+			idx++
+		}
+		if idx >= len(m.treeFlat) {
+			// No file forward — walk backward
+			for idx = m.treeIdx; idx >= 0 && m.treeFlat[idx].node.IsDir; idx-- {
+			}
+		}
+	} else {
+		for idx >= 0 && m.treeFlat[idx].node.IsDir {
+			idx--
+		}
+		if idx < 0 {
+			// No file backward — walk forward
+			for idx = m.treeIdx; idx < len(m.treeFlat) && m.treeFlat[idx].node.IsDir; idx++ {
+			}
+		}
+	}
+
+	// If we found a file node, update currentFile.
+	if idx >= 0 && idx < len(m.treeFlat) && !m.treeFlat[idx].node.IsDir {
+		path := m.treeFlat[idx].node.Path
+		for i, f := range m.files {
+			name := f.NewName
+			if name == "" || name == "/dev/null" {
+				name = f.OldName
+			}
+			if name == path {
+				m.currentFile = i
+				m.refreshDiffContent()
+				break
+			}
+		}
+	}
+
+	// Scroll treeVP to keep treeIdx visible.
+	m.refreshTreeContent()
+	if m.treeIdx < m.treeVP.YOffset() {
+		m.treeVP.SetYOffset(m.treeIdx)
+	} else if m.treeIdx >= m.treeVP.YOffset()+m.treeVP.Height() {
+		m.treeVP.SetYOffset(m.treeIdx - m.treeVP.Height() + 1)
+	}
 }
 
 func max(a, b int) int {
