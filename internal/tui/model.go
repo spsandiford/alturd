@@ -170,10 +170,20 @@ func (m model) View() tea.View {
 		searchBar = "\n" + m.searchInput.View()
 	}
 
+	// Build a full-height separator column: JoinHorizontal pads a single "│"
+	// with empty strings for all rows beyond the first, making the separator
+	// invisible on all but the top row. Repeating "│" for each content row
+	// ensures the vertical divider spans the full pane height (Bug 1 fix).
+	contentH := m.termHeight - 1
+	if m.searchMode {
+		contentH--
+	}
+	sep := strings.Repeat("│\n", contentH-1) + "│"
+
 	body := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		treeStr,
-		"│",
+		sep,
 		diffStr+searchBar,
 	)
 
@@ -212,6 +222,16 @@ func (m *model) refreshDiffContent() {
 	rows := diff.Render(m.files[m.currentFile], diffW, m.renderMode)
 	m.hunkRows = diff.HunkStartRows(m.files[m.currentFile], m.renderMode)
 	m.currentHunk = 0
+	// Expand tab characters to a single space before storing in the viewport.
+	// lipgloss.Style.Width() — used internally by viewport.View() — converts
+	// tabs to 4 spaces, which inflates line width beyond the viewport width and
+	// causes word-wrap to fire, adding spurious newlines and corrupting layout.
+	// Using a single space keeps intent (indentation present) while avoiding
+	// the expansion mismatch (tabs are already truncated to 1 visible rune by
+	// truncateANSI in diff.Render, so a space is the correct replacement).
+	for i, r := range rows {
+		rows[i] = strings.ReplaceAll(r, "\t", " ")
+	}
 	m.diffVP.SetContent(strings.Join(rows, "\n"))
 }
 
@@ -328,8 +348,15 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		// D-11: toggle between changed-files-only and full-repo tree (TREE-03).
 		m.toggleAllFiles()
 	default:
+		// Route scroll/navigation keys to the focused pane. When the tree pane
+		// is focused (Tab pressed), arrow/vim keys scroll the tree; otherwise
+		// they scroll the diff. This ensures j/k/arrows work in both panes.
 		var cmd tea.Cmd
-		m.diffVP, cmd = m.diffVP.Update(msg)
+		if m.focusedPane == treeFocused {
+			m.treeVP, cmd = m.treeVP.Update(msg)
+		} else {
+			m.diffVP, cmd = m.diffVP.Update(msg)
+		}
 		return m, cmd
 	}
 	return m, nil

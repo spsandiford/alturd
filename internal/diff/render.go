@@ -58,11 +58,13 @@ const (
 // chroma ANSI sequences with intra-line span offsets requires ANSI-aware offset
 // mapping that is deferred to a future phase. See applyIntraLine.
 func Render(file *gitdiff.File, width int, mode RenderMode) []string {
-	if width < 4 {
-		width = 4
+	if width < 6 {
+		width = 6
 	}
-	// Each side column receives width/2-1 visible characters (one space separator).
-	colWidth := width/2 - 1
+	// Each side column receives (width-3)/2 visible characters.
+	// The 3-character separator " │ " (space + pipe + space) sits between
+	// the two columns; subtracting 3 and halving gives equal column widths.
+	colWidth := (width - 3) / 2
 
 	// Align produces side-by-side RowPairs; Highlight populates ANSI fields.
 	pairs := Align(file, mode)
@@ -193,8 +195,10 @@ func applyIntraLine(p RowPair) (left, right string) {
 // CRITICAL: ansiReset is inserted at the column boundary to prevent chroma
 // foreground colour in the left column from bleeding into the right column
 // (RESEARCH Pitfall 1, Threat T-01-08).
+// The " │ " separator between the columns provides a visible vertical divider
+// between old (left) and new (right) content in the side-by-side view.
 func joinColumns(left, right string) string {
-	return left + ansiReset + " " + right
+	return left + ansiReset + " │ " + right
 }
 
 // truncateANSI truncates s to at most maxRunes visible rune positions while
