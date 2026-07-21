@@ -78,6 +78,27 @@ func Render(file *gitdiff.File, width int, mode RenderMode) []string {
 	return rows
 }
 
+// RenderFull produces the side-by-side rendered rows for the complete file content,
+// showing every line with changes highlighted in place. fileLines is the complete
+// content of the reference version (new file for modified/added files, old file for
+// deleted files), one element per line, without trailing newlines. It is the full-file
+// counterpart to Render and is called by the TUI when renderMode == FullFile.
+func RenderFull(file *gitdiff.File, width int, fileLines []string) []string {
+	if width < 6 {
+		width = 6
+	}
+	colWidth := (width - 3) / 2
+
+	pairs := AlignFull(file, fileLines)
+	_ = Highlight(pairs, effectiveName(file))
+
+	rows := make([]string, 0, len(pairs))
+	for _, p := range pairs {
+		rows = append(rows, renderPairWidth(p, colWidth))
+	}
+	return rows
+}
+
 // effectiveName returns the best filename for lexer selection.
 // For deleted files go-gitdiff sets NewName to "" or "/dev/null"; the real
 // path is in OldName. Chroma's lexers.Match("") returns nil (falls back to

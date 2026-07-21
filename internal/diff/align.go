@@ -252,6 +252,189 @@ func HunkStartRows(file *gitdiff.File, mode RenderMode) []int {
 	return starts
 }
 
+// AlignFull builds a complete side-by-side RowPair slice showing every line of the
+// file, not just the changed hunks. fileLines contains the full content of the
+// reference version of the file (new file for modified/added files, old file for
+// deleted files), one element per line, without trailing newlines.
+//
+// Lines between hunks are filled from fileLines; hunk content uses the diff data.
+// This implements the "entire file rendered with changes highlighted in place" view
+// required by DIFF-05.
+func AlignFull(file *gitdiff.File, fileLines []string) []RowPair {
+	if file.IsBinary {
+		var notice string
+		if file.BinaryFragment != nil {
+			notice = fmt.Sprintf("[Binary file changed — %d bytes]", file.BinaryFragment.Size)
+		} else {
+			notice = "[Binary file changed]"
+		}
+		return []RowPair{{
+			Left:          RenderedLine{Kind: LineContext, Content: notice},
+			Right:         RenderedLine{Kind: LineBlank},
+			IsPlaceholder: true,
+		}}
+	}
+	if isModeOnly(file) {
+		notice := fmt.Sprintf("[Mode changed: %04o → %04o]", file.OldMode, file.NewMode)
+		return []RowPair{{
+			Left:          RenderedLine{Kind: LineContext, Content: notice},
+			Right:         RenderedLine{Kind: LineBlank},
+			IsPlaceholder: true,
+		}}
+	}
+	if isSubmodule(file) {
+		return alignSubmodule(file)
+	}
+	return alignTextFull(file, fileLines)
+}
+
+// alignTextFull is the full-file alignment algorithm. It fills inter-hunk gaps from
+// fileLines (the reference file content) and processes hunk lines the same way as
+// alignText. For deleted files fileLines should be the old file content (indexed by
+// OldPosition); for all other files it should be the new file content (indexed by
+// NewPosition).
+func alignTextFull(file *gitdiff.File, fileLines []string) []RowPair {
+	var result []RowPair
+	oldPos := 1
+	newPos := 1
+
+	// emitContext appends inter-hunk context rows drawn from fileLines until the
+	// tracked reference position reaches target. For deleted files the old-file
+	// position is the reference; for others the new-file position is used.
+	emitContext := func(target int) {
+		refPos := newPos
+		if file.IsDelete {
+			refPos = oldPos
+		}
+		for refPos < target {
+			content := ""
+			if idx := refPos - 1; idx >= 0 && idx < len(fileLines) {
+				content = fileLines[idx]
+			}
+			result = append(result, RowPair{
+				Left:  RenderedLine{Kind: LineContext, Content: content},
+				Right: RenderedLine{Kind: LineContext, Content: content},
+			})
+			oldPos++
+			newPos++
+			refPos++
+		}
+	}
+
+	for _, frag := range file.TextFragments {
+		if file.IsDelete {
+			emitContext(int(frag.OldPosition))
+		} else {
+			emitContext(int(frag.NewPosition))
+		}
+
+		// Process hunk lines using the same pairing logic as alignText.
+		lines := frag.Lines
+		i := 0
+		for i < len(lines) {
+			switch lines[i].Op {
+			case gitdiff.OpContext:
+				content := stripNewline(lines[i].Line)
+				result = append(result, RowPair{
+					Left:  RenderedLine{Kind: LineContext, Content: content},
+					Right: RenderedLine{Kind: LineContext, Content: content},
+				})
+				oldPos++
+				newPos++
+				i++
+
+			case gitdiff.OpDelete:
+				var deletes []string
+				for i < len(lines) && lines[i].Op == gitdiff.OpDelete {
+					deletes = append(deletes, stripNewline(lines[i].Line))
+					i++
+					oldPos++
+				}
+				var adds []string
+				for i < len(lines) && lines[i].Op == gitdiff.OpAdd {
+					adds = append(adds, stripNewline(lines[i].Line))
+					i++
+					newPos++
+				}
+				n := len(deletes)
+				if len(adds) < n {
+					n = len(adds)
+				}
+				for j := 0; j < n; j++ {
+					result = append(result, RowPair{
+						Left:  RenderedLine{Kind: LineModifiedOld, Content: deletes[j]},
+						Right: RenderedLine{Kind: LineModifiedNew, Content: adds[j]},
+					})
+				}
+				for j := n; j < len(deletes); j++ {
+					result = append(result, RowPair{
+						Left:  RenderedLine{Kind: LineRemoved, Content: deletes[j]},
+						Right: RenderedLine{Kind: LineBlank},
+					})
+				}
+				for j := n; j < len(adds); j++ {
+					result = append(result, RowPair{
+						Left:  RenderedLine{Kind: LineBlank},
+						Right: RenderedLine{Kind: LineAdded, Content: adds[j]},
+					})
+				}
+
+			case gitdiff.OpAdd:
+				result = append(result, RowPair{
+					Left:  RenderedLine{Kind: LineBlank},
+					Right: RenderedLine{Kind: LineAdded, Content: stripNewline(lines[i].Line)},
+				})
+				i++
+				newPos++
+			}
+		}
+	}
+
+	// Emit remaining lines after the last hunk.
+	emitContext(len(fileLines) + 1)
+
+	return result
+}
+
+// HunkStartRowsFull returns the 0-based row indices where each hunk begins in the
+// full-file rendering produced by RenderFull/AlignFull. Unlike HunkStartRows, this
+// accounts for inter-hunk context lines from the full file content so that hunk
+// navigation in FullFile mode scrolls to the correct viewport position.
+func HunkStartRowsFull(file *gitdiff.File) []int {
+	if file.IsBinary || isModeOnly(file) || isSubmodule(file) {
+		return []int{0}
+	}
+	var starts []int
+	row := 0
+	oldPos := 1
+	newPos := 1
+
+	for _, frag := range file.TextFragments {
+		var contextRows int
+		if file.IsDelete {
+			hunkStart := int(frag.OldPosition)
+			if hunkStart > oldPos {
+				contextRows = hunkStart - oldPos
+			}
+		} else {
+			hunkStart := int(frag.NewPosition)
+			if hunkStart > newPos {
+				contextRows = hunkStart - newPos
+			}
+		}
+		row += contextRows
+		oldPos += contextRows
+		newPos += contextRows
+
+		starts = append(starts, row)
+
+		row += countFragmentRows(frag, FullFile)
+		oldPos += int(frag.OldLines)
+		newPos += int(frag.NewLines)
+	}
+	return starts
+}
+
 // countFragmentRows returns the number of Align output rows produced by frag.
 // The pairing logic mirrors alignText: delete+add runs produce max(dels,adds) rows.
 func countFragmentRows(frag *gitdiff.TextFragment, mode RenderMode) int {

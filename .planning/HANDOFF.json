@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-07-21T11:17:28.808Z",
+  "phase": "03",
+  "phase_name": "TUI Application",
+  "phase_dir": ".planning/phases/03-tui-application",
+  "plan": 5,
+  "task": 1,
+  "total_tasks": 2,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Phase 03-05 main.go TUI launch", "status": "done", "commit": "a381437"},
+    {"id": 2, "name": "fix: full-file mode shows entire file (DIFF-05)", "status": "done", "commit": "uncommitted", "progress": "AlignFull + RenderFull + HunkStartRowsFull implemented; fetchFileLines uses git show HEAD; scrollToFirstHunk on file/mode change; build+tests green"},
+    {"id": 3, "name": "fix: viewport navigation and cursor indicator", "status": "partial", "progress": "scrollToFirstHunk added so changes are visible on load; cursor indicator not yet added"}
+  ],
+  "remaining_tasks": [
+    {"id": 4, "name": "DIFF-06 / NAV-01 verification — user should confirm full-file mode works end-to-end", "status": "not_started"},
+    {"id": 5, "name": "03-05-SUMMARY.md — write phase summary once all bugs are confirmed fixed", "status": "not_started"},
+    {"id": 6, "name": "Optional: add scroll-position indicator to status bar for cursor feedback", "status": "not_started"}
+  ],
+  "blockers": [],
+  "async_jobs": [],
+  "human_actions_pending": [
+    {"action": "Run `alturd` in a real git repo and confirm full-file mode shows the entire file with changes highlighted", "context": "User reported partial fix — more content visible but not all. Two fixes applied this session (git show HEAD path + scrollToFirstHunk). Needs smoke test.", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "AlignFull reads file via git show HEAD:path (repo-root-relative) before falling back to git show :path and then os.ReadFile", "rationale": "os.ReadFile with relative path fails when running alturd from a subdirectory; git show HEAD:path works from any CWD", "phase": "03"},
+    {"decision": "scrollToFirstHunk() called after file cycle, tree navigate, and v-toggle but NOT after window resize", "rationale": "Prevents viewport jumping on resize while ensuring first change is visible on file load/mode switch", "phase": "03"},
+    {"decision": "HunkOnly mode keeps existing behavior (hunk context lines shown); FullFile mode is the true-full-file view", "rationale": "Matches DIFF-05/DIFF-06 spec: full-file = entire file; hunk-only = diff hunks with 3-line context", "phase": "03"}
+  ],
+  "uncommitted_files": [
+    "internal/diff/align.go",
+    "internal/diff/align_test.go",
+    "internal/diff/render.go",
+    "internal/tui/model.go",
+    ".planning/STATE.md"
+  ],
+  "next_action": "Commit the full-file mode fixes with a meaningful message, then ask user to smoke-test `alturd` in a real repo to confirm DIFF-05 and DIFF-06 requirements are met.",
+  "context_notes": "This session fixed the full-file mode (was showing only hunk context, now reads actual file). Two bugs fixed: (1) file path resolution via git show HEAD, (2) viewport auto-scrolling to first hunk. User also reported 'no cursor' — this is normal alt-screen behavior but a scroll-position % indicator in the status bar would help."
+}

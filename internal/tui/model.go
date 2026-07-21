@@ -7,6 +7,7 @@ package tui
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -221,8 +222,23 @@ func (m *model) refreshDiffContent() {
 		return
 	}
 	diffW := m.termWidth - m.treeWidth - 1
-	rows := diff.Render(m.files[m.currentFile], diffW, m.renderMode)
-	m.hunkRows = diff.HunkStartRows(m.files[m.currentFile], m.renderMode)
+	file := m.files[m.currentFile]
+
+	var rows []string
+	if m.renderMode == diff.FullFile {
+		fileLines, err := fetchFileLines(file)
+		if err == nil {
+			rows = diff.RenderFull(file, diffW, fileLines)
+			m.hunkRows = diff.HunkStartRowsFull(file)
+		} else {
+			// Fall back to hunk-context rendering if the file cannot be read.
+			rows = diff.Render(file, diffW, diff.FullFile)
+			m.hunkRows = diff.HunkStartRows(file, diff.FullFile)
+		}
+	} else {
+		rows = diff.Render(file, diffW, m.renderMode)
+		m.hunkRows = diff.HunkStartRows(file, m.renderMode)
+	}
 	m.currentHunk = 0
 	// Expand tab characters to a single space before storing in the viewport.
 	// lipgloss.Style.Width() — used internally by viewport.View() — converts
@@ -337,6 +353,7 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.renderMode = diff.FullFile
 		}
 		m.refreshDiffContent()
+		m.scrollToFirstHunk()
 	case "n":
 		m.hunkNext()
 	case "N":
@@ -401,6 +418,7 @@ func (m *model) handleFileCycle(forward bool) {
 	}
 	m.currentHunk = 0
 	m.refreshDiffContent()
+	m.scrollToFirstHunk()
 }
 
 func (m *model) hunkNext() {
@@ -594,6 +612,7 @@ func (m *model) treeIdxMove(delta int) {
 			if name == path {
 				m.currentFile = i
 				m.refreshDiffContent()
+				m.scrollToFirstHunk()
 				break
 			}
 		}
@@ -608,9 +627,90 @@ func (m *model) treeIdxMove(delta int) {
 	}
 }
 
+// scrollToFirstHunk centres the diff viewport on the first hunk when in FullFile
+// mode. Called after any operation that changes the active file or render mode so
+// that the first change is immediately visible instead of the user having to scroll
+// through unchanged lines at the top of the file.
+func (m *model) scrollToFirstHunk() {
+	if m.renderMode == diff.FullFile && len(m.hunkRows) > 0 {
+		m.diffVP.SetYOffset(max(0, m.hunkRows[0]-m.diffVP.Height()/2))
+	}
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
 	}
 	return b
+}
+
+// fetchFileLines reads the complete line content of a file for full-file rendering.
+// For deleted files it reads the old version via git show HEAD:OldName.
+// For all other files it tries, in order:
+//  1. git show HEAD:path  (reliable — path is repo-root-relative; works for any CWD)
+//  2. git show :path      (staged index version — for newly-added or staged files)
+//  3. os.ReadFile(path)   (working-tree fallback)
+//
+// Returns nil, nil for files with no usable name (binary specials etc.) where
+// AlignFull handles rendering via its own placeholder logic.
+func fetchFileLines(f *gitdiff.File) ([]string, error) {
+	if f.IsDelete {
+		r, err := git.ExecRunner{}.Run([]string{"show", "HEAD:" + f.OldName})
+		if err != nil {
+			return nil, err
+		}
+		return scanLines(r), nil
+	}
+
+	name := f.NewName
+	if name == "" || name == "/dev/null" {
+		name = f.OldName
+	}
+	if name == "" {
+		return nil, nil
+	}
+
+	// Try the committed version first — path is relative to repo root so this
+	// works regardless of the user's current working directory.
+	r, err := git.ExecRunner{}.Run([]string{"show", "HEAD:" + name})
+	if err == nil {
+		return scanLines(r), nil
+	}
+
+	// Try the staged (index) version — handles newly-added files that are staged
+	// but not yet committed.
+	r, err = git.ExecRunner{}.Run([]string{"show", ":" + name})
+	if err == nil {
+		return scanLines(r), nil
+	}
+
+	// Last resort: read from the working tree.
+	data, err := os.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+	return splitFileBytes(data), nil
+}
+
+// scanLines reads all lines from r using bufio.Scanner, stripping trailing \r.
+func scanLines(r io.Reader) []string {
+	scanner := bufio.NewScanner(r)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, strings.TrimRight(scanner.Text(), "\r"))
+	}
+	return lines
+}
+
+// splitFileBytes splits raw file bytes into lines, normalising CRLF and
+// stripping the final newline so each element holds one logical line.
+func splitFileBytes(data []byte) []string {
+	content := strings.ReplaceAll(string(data), "\r\n", "\n")
+	if len(content) > 0 && content[len(content)-1] == '\n' {
+		content = content[:len(content)-1]
+	}
+	if content == "" {
+		return nil
+	}
+	return strings.Split(content, "\n")
 }

@@ -276,3 +276,74 @@ func TestHunkStartRows(t *testing.T) {
 		}
 	})
 }
+
+func TestAlignFull(t *testing.T) {
+	t.Run("more_rows_than_align_fullfile_for_multi_hunk", func(t *testing.T) {
+		// AlignFull must produce more rows than Align(FullFile) when inter-hunk
+		// context lines exist. For multi-hunk.diff the two hunks are separated by
+		// unchanged lines; providing synthetic file content fills the gap.
+		file := parseFirst(t, "multi-hunk.diff")
+
+		// Build a synthetic file with enough lines to cover both hunks.
+		// multi-hunk.diff has @@ -1,11 +1,12 @@ and @@ -25,7 +26,9 @@.
+		// The new file must have at least 34 lines (26+9-1). We synthesise 40.
+		syntheticLines := make([]string, 40)
+		for i := range syntheticLines {
+			syntheticLines[i] = "line"
+		}
+
+		fullRows := diff.Align(file, diff.FullFile)
+		allRows := diff.AlignFull(file, syntheticLines)
+
+		if len(allRows) <= len(fullRows) {
+			t.Errorf("AlignFull (%d rows) must exceed Align(FullFile) (%d rows) when inter-hunk lines exist",
+				len(allRows), len(fullRows))
+		}
+	})
+
+	t.Run("hunk_start_rows_full_ascending_and_larger", func(t *testing.T) {
+		file := parseFirst(t, "multi-hunk.diff")
+		hunkRows := diff.HunkStartRowsFull(file)
+		if len(hunkRows) < 2 {
+			t.Skip("multi-hunk.diff has fewer than 2 hunks")
+		}
+		for i := 1; i < len(hunkRows); i++ {
+			if hunkRows[i] <= hunkRows[i-1] {
+				t.Errorf("HunkStartRowsFull: rows[%d]=%d not > rows[%d]=%d (must be ascending)",
+					i, hunkRows[i], i-1, hunkRows[i-1])
+			}
+		}
+		// Hunk rows in full-file mode must be >= the same in FullFile hunk mode,
+		// since inter-hunk context lines push each subsequent hunk further down.
+		regularRows := diff.HunkStartRows(file, diff.FullFile)
+		if len(regularRows) == len(hunkRows) {
+			for i := range hunkRows {
+				if hunkRows[i] < regularRows[i] {
+					t.Errorf("HunkStartRowsFull[%d]=%d < HunkStartRows(FullFile)[%d]=%d",
+						i, hunkRows[i], i, regularRows[i])
+				}
+			}
+		}
+	})
+
+	t.Run("new_file_all_rows_added", func(t *testing.T) {
+		// For a new file, all rows must have LineAdded on the right — same as Align.
+		file := parseFirst(t, "new-file.diff")
+		syntheticLines := []string{"line1", "line2", "line3"}
+		rows := diff.AlignFull(file, syntheticLines)
+		for i, row := range rows {
+			if row.Right.Kind != diff.LineAdded {
+				t.Errorf("new-file row[%d].Right.Kind = %v, want LineAdded", i, row.Right.Kind)
+			}
+		}
+	})
+
+	t.Run("binary_returns_placeholder", func(t *testing.T) {
+		file := parseFirst(t, "binary.diff")
+		rows := diff.AlignFull(file, nil)
+		if len(rows) != 1 || !rows[0].IsPlaceholder {
+			t.Errorf("AlignFull(binary.diff): got %d rows IsPlaceholder=%v, want 1 placeholder",
+				len(rows), len(rows) > 0 && rows[0].IsPlaceholder)
+		}
+	})
+}
