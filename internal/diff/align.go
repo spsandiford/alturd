@@ -171,8 +171,7 @@ func alignText(file *gitdiff.File, mode RenderMode) []RowPair {
 			switch lines[i].Op {
 			case gitdiff.OpContext:
 				content := stripNewline(lines[i].Line)
-				// In HunkOnly mode we still include hunk-local context lines.
-				if mode == HunkOnly || mode == FullFile {
+				if mode == FullFile {
 					result = append(result, RowPair{
 						Left:  RenderedLine{Kind: LineContext, Content: content},
 						Right: RenderedLine{Kind: LineContext, Content: content},
@@ -262,7 +261,7 @@ func countFragmentRows(frag *gitdiff.TextFragment, mode RenderMode) int {
 	for i < len(lines) {
 		switch lines[i].Op {
 		case gitdiff.OpContext:
-			if mode == FullFile || mode == HunkOnly {
+			if mode == FullFile {
 				count++
 			}
 			i++

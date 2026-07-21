@@ -61,9 +61,11 @@ type model struct {
 	hunkRows    []int
 	currentHunk int
 
-	searchMode    bool
-	searchInput   textinput.Model
-	searchMatches [][]int
+	searchMode      bool
+	searchInput     textinput.Model
+	diffContent     string // unhighlighted rendered diff content
+	searchMatches   []Match
+	searchMatchIdx  int
 }
 
 // NewModel creates the initial bubbletea model. files must be non-nil (may be empty).
@@ -232,7 +234,11 @@ func (m *model) refreshDiffContent() {
 	for i, r := range rows {
 		rows[i] = strings.ReplaceAll(r, "\t", " ")
 	}
-	m.diffVP.SetContent(strings.Join(rows, "\n"))
+	m.diffContent = strings.Join(rows, "\n")
+	m.diffVP.SetContent(m.diffContent)
+	if m.searchMode && m.searchInput.Value() != "" {
+		m.recomputeSearch()
+	}
 }
 
 func (m *model) refreshTreeContent() {
@@ -282,20 +288,20 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.searchMode = false
 			m.searchInput.Reset()
 			m.searchMatches = nil
-			m.diffVP.SetHighlights(nil)
+			m.searchMatchIdx = 0
 			m.handleResize(m.termWidth, m.termHeight)
 		case "n":
 			// D-14: navigate to next match.
-			m.diffVP.HighlightNext()
+			m.searchNextMatch(1)
 		case "N":
 			// D-14: navigate to previous match.
-			m.diffVP.HighlightPrevious()
+			m.searchNextMatch(-1)
 		case "]":
 			// D-16: close search then cycle to next file.
 			m.searchMode = false
 			m.searchInput.Reset()
 			m.searchMatches = nil
-			m.diffVP.SetHighlights(nil)
+			m.searchMatchIdx = 0
 			m.handleResize(m.termWidth, m.termHeight)
 			m.handleFileCycle(true)
 		case "[":
@@ -303,7 +309,7 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.searchMode = false
 			m.searchInput.Reset()
 			m.searchMatches = nil
-			m.diffVP.SetHighlights(nil)
+			m.searchMatchIdx = 0
 			m.handleResize(m.termWidth, m.termHeight)
 			m.handleFileCycle(false)
 		default:
@@ -418,14 +424,80 @@ func (m *model) hunkPrev() {
 }
 
 // recomputeSearch refreshes searchMatches from the current textinput value and
-// feeds the results to the diff viewport (SEARCH-01, D-13; RESEARCH Pitfalls 5 and 7).
-// Content is read from the viewport via GetContent(); findMatches strips ANSI before
-// searching so positions are plain-text offsets compatible with SetHighlights.
+// bakes highlights into the diff viewport content (SEARCH-01, D-13).
+// Bypasses viewport.SetHighlights because its internal parseMatches function
+// incorrectly detects newlines when content contains ANSI codes (the function
+// checks content[bytePos] where bytePos advances through stripped-content positions,
+// not original-content positions). We compute per-line grapheme positions ourselves
+// and apply them via lipgloss.StyleRanges instead.
 func (m *model) recomputeSearch() {
 	query := m.searchInput.Value()
-	content := m.diffVP.GetContent()
-	m.searchMatches = findMatches(content, query)
-	m.diffVP.SetHighlights(m.searchMatches)
+	m.searchMatches = findMatches(m.diffContent, query)
+	m.searchMatchIdx = 0
+	highlighted := m.applySearchHighlights()
+	m.diffVP.SetContent(highlighted)
+	if len(m.searchMatches) > 0 {
+		m.scrollToMatch(0)
+	}
+}
+
+// applySearchHighlights returns m.diffContent with all search matches highlighted
+// using lipgloss.StyleRanges. The selected match (searchMatchIdx) uses a bolder style.
+func (m *model) applySearchHighlights() string {
+	if len(m.searchMatches) == 0 {
+		return m.diffContent
+	}
+	hl := lipgloss.NewStyle().Reverse(true)
+	hlSel := lipgloss.NewStyle().Reverse(true).Bold(true)
+
+	lines := strings.Split(m.diffContent, "\n")
+	type colRange struct {
+		start, end int
+		sel        bool
+	}
+	byLine := make(map[int][]colRange)
+	for i, match := range m.searchMatches {
+		byLine[match.Line] = append(byLine[match.Line], colRange{match.ColStart, match.ColEnd, i == m.searchMatchIdx})
+	}
+	for lineN, ranges := range byLine {
+		if lineN >= len(lines) {
+			continue
+		}
+		lgRanges := make([]lipgloss.Range, 0, len(ranges))
+		for _, r := range ranges {
+			style := hl
+			if r.sel {
+				style = hlSel
+			}
+			lgRanges = append(lgRanges, lipgloss.NewRange(r.start, r.end, style))
+		}
+		lines[lineN] = lipgloss.StyleRanges(lines[lineN], lgRanges...)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// searchNextMatch advances the current match by delta (±1, wrapping) and scrolls
+// the viewport to centre it.
+func (m *model) searchNextMatch(delta int) {
+	if len(m.searchMatches) == 0 {
+		return
+	}
+	m.searchMatchIdx = (m.searchMatchIdx + delta + len(m.searchMatches)) % len(m.searchMatches)
+	m.diffVP.SetContent(m.applySearchHighlights())
+	m.scrollToMatch(m.searchMatchIdx)
+}
+
+// scrollToMatch scrolls the diff viewport so that match idx is roughly centred.
+func (m *model) scrollToMatch(idx int) {
+	if idx < 0 || idx >= len(m.searchMatches) {
+		return
+	}
+	line := m.searchMatches[idx].Line
+	offset := line - m.diffVP.Height()/2
+	if offset < 0 {
+		offset = 0
+	}
+	m.diffVP.SetYOffset(offset)
 }
 
 // toggleAllFiles toggles between the changed-files-only tree and the full-repo
