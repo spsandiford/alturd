@@ -18,16 +18,19 @@ A developer can download a single binary, run `alturd` in any git repository, an
 - ✓ **DIFF-05**: Full-file and hunk-only render modes via RenderMode enum — Phase 1 (wired; TUI toggle in Phase 3)
 - ✓ **CLI-01**: `alturd [<refs>...] [-- <paths>...]` ref grammar — Phase 2 (ParseRefArgs covers all six invocation forms; exit codes 0/1/127 verified)
 
-### Active
+### Validated (continued)
 
-- [ ] **TREE-01**: File tree shows all changed files with [A]/[M]/[D]/[R] status markers, dirs-first sort, and compact-folder layout
-- [ ] **TREE-02**: Tree pane adapts width — wider when focused (45 col), narrower when not (24 col, truncated filenames)
-- [ ] **TREE-03**: `]`/`[` cycles between changed files; `a` toggles changed-only vs full-repo tree
-- [ ] **DIFF-01**: Side-by-side diff pane renders old and new file content in aligned parallel columns
-- [ ] **DIFF-06**: `v` hotkey toggles full-file ↔ hunk-only without reload
-- [ ] **NAV-01**: `n`/`N` jumps between hunks/changes; in full-file mode centers each change with context
-- [ ] **NAV-02**: `Tab` switches focus between file tree and diff pane
-- [ ] **SEARCH-01**: `/` opens in-pane search with match highlighting
+- ✓ **TREE-01**: File tree with [A]/[M]/[D]/[R] status markers (256-colour, light/dark adaptive), dirs-first, compact-folder — Phase 3
+- ✓ **TREE-02**: Tree pane 45 col focused / 24 col unfocused, instant resize on Tab — Phase 3
+- ✓ **TREE-03**: `]`/`[` cycles changed files; `a` toggles changed-only vs full-repo tree via git ls-tree — Phase 3
+- ✓ **DIFF-06**: `v` toggles full-file ↔ hunk-only without reload; hunk-only shows diff context lines — Phase 3
+- ✓ **NAV-01**: `n`/`N` jumps between hunks, centered via SetYOffset — Phase 3
+- ✓ **NAV-02**: `]`/`[` cycles files with wraparound — Phase 3
+- ✓ **NAV-03**: `Tab` switches focus between tree and diff pane — Phase 3
+- ✓ **NAV-04**: `q` exits 0; `Q` exits 1 — Phase 3
+- ✓ **SEARCH-01**: `/` opens in-pane search with ANSI-aware match highlighting and n/N navigation — Phase 3
+
+### Active
 - [ ] **THEME-01**: Light/dark/auto theming — detects terminal background automatically
 - [ ] **CONFIG-01**: Configurable keybindings via TOML config file (XDG config path)
 - [ ] **CLI-01**: `alturd [<refs>...] [-- <paths>...]` ref grammar matches Python implementation exactly
