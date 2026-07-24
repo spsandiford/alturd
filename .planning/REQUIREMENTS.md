@@ -20,20 +20,20 @@
 - [x] **DIFF-03**: User sees line-level diff colors (added/removed/modified) layered with syntax highlighting
 - [x] **DIFF-04**: User sees intra-line word/character-level change markers on modified lines (with 1000-char/200-token/100ms guards)
 - [x] **DIFF-05**: User sees full-file mode by default — entire file rendered with changes highlighted in place, unchanged lines shown in full
-- [ ] **DIFF-06**: User can toggle between full-file and hunk-only view with `v` hotkey without reload
+- [x] **DIFF-06**: User can toggle between full-file and hunk-only view with `v` hotkey without reload
 - [x] **DIFF-07**: Binary files, pure renames, mode-only changes, submodule bumps, and no-newline-at-EOF all render correct placeholder or diff content
 
 ### Navigation
 
-- [ ] **NAV-01**: User can press `n`/`N` to jump between hunks; in full-file mode each change is centered with surrounding context visible
-- [ ] **NAV-02**: User can press `]`/`[` to cycle between changed files in the file tree
-- [ ] **NAV-03**: User can press `Tab` to switch focus between file tree pane and diff pane
-- [ ] **NAV-04**: User can press `q` to exit (exit 0); `Q` aborts in difftool mode (exit 1)
+- [x] **NAV-01**: User can press `n`/`N` to jump between hunks; in full-file mode each change is centered with surrounding context visible
+- [x] **NAV-02**: User can press `]`/`[` to cycle between changed files in the file tree
+- [x] **NAV-03**: User can press `Tab` to switch focus between file tree pane and diff pane
+- [x] **NAV-04**: User can press `q` to exit (exit 0); `Q` aborts in difftool mode (exit 1)
 
 ### File Tree
 
-- [ ] **TREE-01**: User sees a file tree of all changed files with [A]/[M]/[D]/[R] colored status markers, dirs-first sort, and compact-folder layout
-- [ ] **TREE-02**: Tree pane widens to 45 columns when focused and contracts to 24 columns (truncated filenames) when not focused, with animated transition
+- [x] **TREE-01**: User sees a file tree of all changed files with [A]/[M]/[D]/[R] colored status markers, dirs-first sort, and compact-folder layout
+- [x] **TREE-02**: Tree pane widens to 45 columns when focused and contracts to 24 columns (truncated filenames) when not focused, with animated transition
 - [x] **TREE-03**: User can press `a` to toggle between changed-files-only view and full-repo tree view
 
 ### Search
@@ -102,13 +102,13 @@
 | GIT-04 | Phase 2 | Complete |
 | GIT-05 | Phase 2 | Complete |
 | LOG-01 | Phase 2 | Complete |
-| DIFF-06 | Phase 3 | Pending |
-| NAV-01 | Phase 3 | Pending |
-| NAV-02 | Phase 3 | Pending |
-| NAV-03 | Phase 3 | Pending |
-| NAV-04 | Phase 3 | Pending |
-| TREE-01 | Phase 3 | Pending |
-| TREE-02 | Phase 3 | Pending |
+| DIFF-06 | Phase 3 | Complete |
+| NAV-01 | Phase 3 | Complete |
+| NAV-02 | Phase 3 | Complete |
+| NAV-03 | Phase 3 | Complete |
+| NAV-04 | Phase 3 | Complete |
+| TREE-01 | Phase 3 | Complete |
+| TREE-02 | Phase 3 | Complete |
 | TREE-03 | Phase 3 | Complete |
 | SEARCH-01 | Phase 3 | Complete |
 | THEME-01 | Phase 4 | Pending |

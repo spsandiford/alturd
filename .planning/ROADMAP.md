@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Diff Model** - Pure Go diff parsing and rendering engine validated against the Python fixture corpus (completed 2026-06-26)
 - [x] **Phase 2: Git Layer + CLI** - Git subprocess chokepoint, ref-grammar argument parsing, error handling, and logging (completed 2026-06-29)
-- [ ] **Phase 3: TUI Application** - Full bubbletea v2 interactive app with file tree, diff pane, and all navigation
+- [x] **Phase 3: TUI Application** - Full bubbletea v2 interactive app with file tree, diff pane, and all navigation (completed 2026-07-24)
 - [ ] **Phase 4: Config + Theming + Difftool + Distribution** - TOML config, OSC 11 theming, difftool mode, CI, goreleaser release
 
 ## Phase Details
@@ -85,7 +85,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `n`/`N` jumps between hunks; in full-file mode each hunk is centered with surrounding context; `v` toggles full-file/hunk-only view without reloading git data; `q` exits with code 0
   5. `/` opens in-pane search, typed text highlights matching substrings in the diff pane, and `n`/`N` navigates between matches using an ANSI-aware scanner
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans complete
 **UI hint**: yes
 
 **Wave 1** *(parallel — no shared files)*
@@ -103,7 +103,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 4** *(blocked on Wave 3 — wires the completed model into the binary)*
 
-- [ ] 03-05-PLAN.md — cmd/alturd/main.go: bubbletea launch replacing stdout loop (D-06) + empty-state guard + integration gate + human smoke check
+- [x] 03-05-PLAN.md — cmd/alturd/main.go: bubbletea launch replacing stdout loop (D-06) + empty-state guard + integration gate + human smoke check
 
 ### Phase 4: Config + Theming + Difftool + Distribution
 
@@ -130,5 +130,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Diff Model | 3/3 | Complete    | 2026-06-26 |
 | 2. Git Layer + CLI | 3/3 | Complete    | 2026-06-29 |
-| 3. TUI Application | 4/5 | In Progress|  |
+| 3. TUI Application | 5/5 | Complete    | 2026-07-24 |
 | 4. Config + Theming + Difftool + Distribution | 0/TBD | Not started | - |
