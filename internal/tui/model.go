@@ -392,6 +392,10 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.handleFileCycle(true)
 	case "[":
 		m.handleFileCycle(false)
+	case "enter", "l", "right":
+		if m.focusedPane == treeFocused {
+			m.treeToggleExpand()
+		}
 	case "j", "down":
 		if m.focusedPane == treeFocused {
 			m.treeIdxMove(1)
@@ -656,6 +660,26 @@ func (m *model) treeIdxMove(delta int) {
 	} else if m.treeIdx >= m.treeVP.YOffset()+m.treeVP.Height() {
 		m.treeVP.SetYOffset(m.treeIdx - m.treeVP.Height() + 1)
 	}
+}
+
+// treeToggleExpand toggles the expanded state of the directory node at the
+// current treeIdx. If the node is a file leaf, it is ignored. After toggling,
+// treeFlat is rebuilt and treeIdx is kept on the same node.
+func (m *model) treeToggleExpand() {
+	if len(m.treeFlat) == 0 || m.treeIdx >= len(m.treeFlat) {
+		return
+	}
+	node := m.treeFlat[m.treeIdx].node
+	if !node.IsDir {
+		return
+	}
+	node.expanded = !node.expanded
+	m.treeFlat = flattenTree(m.treeNodes[0], 0)
+	// Keep treeIdx within the new flat list bounds.
+	if m.treeIdx >= len(m.treeFlat) {
+		m.treeIdx = max(0, len(m.treeFlat)-1)
+	}
+	m.refreshTreeContent()
 }
 
 // scrollToFirstHunk centres the diff viewport on the first hunk when in FullFile

@@ -277,3 +277,53 @@ func TestModel_AllFilesToggle(t *testing.T) {
 			len(m.treeFlat), flatBefore)
 	}
 }
+
+// TestModel_TreeExpandCollapse verifies that Enter/l/right expand a directory node
+// in the tree and a second press collapses it.
+func TestModel_TreeExpandCollapse(t *testing.T) {
+	// Seed a tree with a directory that has children so we have something to expand.
+	m := newModelWith(t, nil)
+	m.allFilePaths = []string{
+		"src/foo.go",
+		"src/bar.go",
+		"README.md",
+	}
+	m.allFiles = false
+	root := buildTree(m.allFilePaths, nil)
+	m.treeNodes = []*TreeNode{root}
+	m.treeFlat = flattenTree(root, 0)
+	m.treeIdx = 0
+
+	// Focus the tree pane so Enter routes to treeToggleExpand.
+	m.focusedPane = treeFocused
+
+	// Find a dir node in the flat list.
+	dirIdx := -1
+	for i, row := range m.treeFlat {
+		if row.node.IsDir {
+			dirIdx = i
+			break
+		}
+	}
+	if dirIdx < 0 {
+		t.Skip("test tree has no directory nodes — cannot test expand")
+	}
+	m.treeIdx = dirIdx
+	flatBefore := len(m.treeFlat)
+
+	// Enter expands the dir: treeFlat should grow.
+	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	m = m2.(model)
+	if len(m.treeFlat) <= flatBefore {
+		t.Errorf("after Enter on dir: treeFlat len = %d, want > %d (children should appear)",
+			len(m.treeFlat), flatBefore)
+	}
+
+	// Enter again collapses: treeFlat should return to original length.
+	m3, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	m = m3.(model)
+	if len(m.treeFlat) != flatBefore {
+		t.Errorf("after 2nd Enter on dir: treeFlat len = %d, want %d (collapsed)",
+			len(m.treeFlat), flatBefore)
+	}
+}
