@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	tea "charm.land/bubbletea/v2"
+	"github.com/muesli/termenv"
 
 	"github.com/alturd/alturd/internal/diff"
 	"github.com/alturd/alturd/internal/git"
@@ -70,6 +71,11 @@ func run(cmd *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, "No changes found.")
 		return nil
 	}
+
+	// Detect terminal background before bubbletea takes over the TTY.
+	// termenv queries OSC 11 with a short timeout and falls back to COLORFGBG.
+	// Must be called here, not inside tea.NewProgram, while stdout is still raw.
+	diff.SetDarkBackground(termenv.NewOutput(os.Stdout).HasDarkBackground())
 
 	// Phase 3: launch bubbletea TUI (D-06).
 	// Data is pre-loaded; no async loading inside the model.

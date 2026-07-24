@@ -16,6 +16,23 @@ import (
 // colour bleed (RESEARCH Pitfall 1).
 const ansiReset = "\x1b[0m"
 
+// chromaStyleName is the Chroma syntax-highlight style applied to all diff content.
+// Defaults to "monokai" (tuned for dark terminal backgrounds). Call SetDarkBackground
+// once at startup — before tea.NewProgram — to select the appropriate style.
+var chromaStyleName = "monokai"
+
+// SetDarkBackground switches the Chroma style to one suited for the terminal
+// background. dark=true keeps "monokai"; dark=false switches to "github" whose
+// default-text token uses the terminal foreground colour and is readable on light
+// backgrounds. Must be called before the first Highlight invocation.
+func SetDarkBackground(dark bool) {
+	if dark {
+		chromaStyleName = "monokai"
+	} else {
+		chromaStyleName = "github"
+	}
+}
+
 // Highlight applies Chroma syntax highlighting to every RowPair in pairs,
 // populating the ANSI field of each non-blank RenderedLine. It must be called
 // after Align and before Render. Highlight mutates pairs in-place.
@@ -42,8 +59,8 @@ const ansiReset = "\x1b[0m"
 //
 // # Phase 4 note
 //
-// The style ("monokai") and formatter ("terminal16m") are hardcoded here.
-// Phase 4 will make both configurable via the user's config.toml.
+// The formatter ("terminal16m") and the two style names are hardcoded here.
+// Phase 4 will make both fully configurable via the user's config.toml.
 func Highlight(pairs []RowPair, filename string) error {
 	if len(pairs) == 0 {
 		return nil
@@ -64,8 +81,7 @@ func Highlight(pairs []RowPair, filename string) error {
 		lex = lexers.Fallback
 	}
 
-	// Phase 4 will make the style configurable.
-	sty := styles.Get("monokai")
+	sty := styles.Get(chromaStyleName)
 	if sty == nil {
 		sty = styles.Fallback
 	}

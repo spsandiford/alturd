@@ -130,4 +130,56 @@ func TestHighlight(t *testing.T) {
 			t.Errorf("Highlight(empty, ...): expected nil, got %v", err)
 		}
 	})
+
+	t.Run("set_dark_background_selects_style", func(t *testing.T) {
+		// SetDarkBackground must switch style so subsequent Highlight calls use ANSI
+		// output appropriate for the terminal background. We verify indirectly: both
+		// styles must produce ANSI output (non-empty), and the ANSI strings from each
+		// style must differ (confirming the switch actually changes output).
+		file := parseFirst(t, "simple.diff")
+
+		diff.SetDarkBackground(true)
+		pairsDark := diff.Align(file, diff.FullFile)
+		if err := diff.Highlight(pairsDark, file.NewName); err != nil {
+			t.Fatalf("Highlight(dark): %v", err)
+		}
+
+		diff.SetDarkBackground(false)
+		pairsLight := diff.Align(file, diff.FullFile)
+		if err := diff.Highlight(pairsLight, file.NewName); err != nil {
+			t.Fatalf("Highlight(light): %v", err)
+		}
+
+		// Restore default so other tests are not affected.
+		diff.SetDarkBackground(true)
+
+		// Both styles must produce at least one ANSI-coloured row.
+		hasDark, hasLight := false, false
+		for i := range pairsDark {
+			if ansiColorRe.MatchString(pairsDark[i].Left.ANSI) {
+				hasDark = true
+			}
+			if ansiColorRe.MatchString(pairsLight[i].Left.ANSI) {
+				hasLight = true
+			}
+		}
+		if !hasDark {
+			t.Error("SetDarkBackground(true): expected ANSI colour in at least one row")
+		}
+		if !hasLight {
+			t.Error("SetDarkBackground(false): expected ANSI colour in at least one row")
+		}
+
+		// The two styles must produce different ANSI output.
+		same := true
+		for i := range pairsDark {
+			if pairsDark[i].Left.ANSI != pairsLight[i].Left.ANSI {
+				same = false
+				break
+			}
+		}
+		if same {
+			t.Error("SetDarkBackground: dark and light styles produced identical ANSI output — style switch had no effect")
+		}
+	})
 }

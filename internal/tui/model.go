@@ -63,6 +63,7 @@ type model struct {
 	currentHunk int
 
 	searchMode      bool
+	searchTyping    bool // true while textinput is focused for input; false in n/N navigation phase
 	searchInput     textinput.Model
 	diffContent     string // unhighlighted rendered diff content
 	searchMatches   []Match
@@ -130,10 +131,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleKey(msg)
 	}
 
-	// Forward non-key messages to the search textinput when search is active.
-	// This allows bubbletea internal cursor blink and focus messages to reach
-	// the textinput even when they are not tea.KeyPressMsg.
-	if m.searchMode {
+	// Forward non-key messages to the textinput only in the typing phase.
+	// In navigation phase the textinput is blurred so no blink commands are pending.
+	if m.searchMode && m.searchTyping {
 		var cmd tea.Cmd
 		m.searchInput, cmd = m.searchInput.Update(msg)
 		m.recomputeSearch()
@@ -296,44 +296,74 @@ func (m *model) renderTree() string {
 }
 
 func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	// Search mode: dispatch before the normal-mode switch (SEARCH-01, D-13/D-14/D-15/D-16).
+	// Search mode: two-phase dispatch (SEARCH-01, D-13/D-14/D-15/D-16).
+	// Phase 1 — typing (searchTyping=true): esc closes; enter commits to navigation;
+	//   all other keys (including 'n') forwarded to the textinput so the user can
+	//   type any character in their query.
+	// Phase 2 — navigation (searchTyping=false): n/N cycle matches; [/] close and
+	//   cycle files; any other character re-enters typing phase.
 	if m.searchMode {
-		switch msg.String() {
-		case "esc":
-			// D-15: close search, clear state, restore viewport height.
-			m.searchMode = false
-			m.searchInput.Reset()
-			m.searchMatches = nil
-			m.searchMatchIdx = 0
-			m.handleResize(m.termWidth, m.termHeight)
-		case "n":
-			// D-14: navigate to next match.
-			m.searchNextMatch(1)
-		case "N":
-			// D-14: navigate to previous match.
-			m.searchNextMatch(-1)
-		case "]":
-			// D-16: close search then cycle to next file.
-			m.searchMode = false
-			m.searchInput.Reset()
-			m.searchMatches = nil
-			m.searchMatchIdx = 0
-			m.handleResize(m.termWidth, m.termHeight)
-			m.handleFileCycle(true)
-		case "[":
-			// D-16: close search then cycle to previous file.
-			m.searchMode = false
-			m.searchInput.Reset()
-			m.searchMatches = nil
-			m.searchMatchIdx = 0
-			m.handleResize(m.termWidth, m.termHeight)
-			m.handleFileCycle(false)
-		default:
-			// Forward typed characters to the textinput (SEARCH-01, D-13).
-			var cmd tea.Cmd
-			m.searchInput, cmd = m.searchInput.Update(msg)
-			m.recomputeSearch()
-			return m, cmd
+		if m.searchTyping {
+			switch msg.String() {
+			case "esc":
+				// D-15: close search, clear state, restore viewport height.
+				m.searchMode = false
+				m.searchTyping = false
+				m.searchInput.Reset()
+				m.searchMatches = nil
+				m.searchMatchIdx = 0
+				m.handleResize(m.termWidth, m.termHeight)
+			case "enter":
+				// Commit search — switch to navigation phase; blur cursor.
+				m.searchTyping = false
+				m.searchInput.Blur()
+			default:
+				// Forward all typed characters to the textinput (SEARCH-01, D-13).
+				var cmd tea.Cmd
+				m.searchInput, cmd = m.searchInput.Update(msg)
+				m.recomputeSearch()
+				return m, cmd
+			}
+		} else {
+			switch msg.String() {
+			case "esc":
+				// D-15: close search, clear state, restore viewport height.
+				m.searchMode = false
+				m.searchInput.Reset()
+				m.searchMatches = nil
+				m.searchMatchIdx = 0
+				m.handleResize(m.termWidth, m.termHeight)
+			case "n":
+				// D-14: navigate to next match.
+				m.searchNextMatch(1)
+			case "N":
+				// D-14: navigate to previous match.
+				m.searchNextMatch(-1)
+			case "]":
+				// D-16: close search then cycle to next file.
+				m.searchMode = false
+				m.searchInput.Reset()
+				m.searchMatches = nil
+				m.searchMatchIdx = 0
+				m.handleResize(m.termWidth, m.termHeight)
+				m.handleFileCycle(true)
+			case "[":
+				// D-16: close search then cycle to previous file.
+				m.searchMode = false
+				m.searchInput.Reset()
+				m.searchMatches = nil
+				m.searchMatchIdx = 0
+				m.handleResize(m.termWidth, m.termHeight)
+				m.handleFileCycle(false)
+			default:
+				// Any typed character re-enters typing phase.
+				m.searchTyping = true
+				focusCmd := m.searchInput.Focus()
+				var updateCmd tea.Cmd
+				m.searchInput, updateCmd = m.searchInput.Update(msg)
+				m.recomputeSearch()
+				return m, tea.Batch(focusCmd, updateCmd)
+			}
 		}
 		return m, nil
 	}
@@ -377,6 +407,7 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "/":
 		// D-13: open search — shrink viewport by 1 row, focus textinput (SEARCH-01).
 		m.searchMode = true
+		m.searchTyping = true
 		m.handleResize(m.termWidth, m.termHeight)
 		return m, m.searchInput.Focus()
 	case "a":
