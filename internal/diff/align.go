@@ -171,12 +171,10 @@ func alignText(file *gitdiff.File, mode RenderMode) []RowPair {
 			switch lines[i].Op {
 			case gitdiff.OpContext:
 				content := stripNewline(lines[i].Line)
-				if mode == FullFile {
-					result = append(result, RowPair{
-						Left:  RenderedLine{Kind: LineContext, Content: content},
-						Right: RenderedLine{Kind: LineContext, Content: content},
-					})
-				}
+				result = append(result, RowPair{
+					Left:  RenderedLine{Kind: LineContext, Content: content},
+					Right: RenderedLine{Kind: LineContext, Content: content},
+				})
 				i++
 
 			case gitdiff.OpDelete:
@@ -444,9 +442,7 @@ func countFragmentRows(frag *gitdiff.TextFragment, mode RenderMode) int {
 	for i < len(lines) {
 		switch lines[i].Op {
 		case gitdiff.OpContext:
-			if mode == FullFile {
-				count++
-			}
+			count++
 			i++
 		case gitdiff.OpDelete:
 			dels := 0

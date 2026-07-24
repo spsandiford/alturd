@@ -222,6 +222,25 @@ func TestAlign(t *testing.T) {
 		}
 	})
 
+	t.Run("hunkonly_context_lines_present", func(t *testing.T) {
+		// HunkOnly must include the context lines that git diff provides within each
+		// hunk (the 3 surrounding lines). Regression for the bug where alignText
+		// guarded on mode==FullFile and dropped all OpContext rows in HunkOnly mode.
+		file := parseFirst(t, "simple.diff")
+		rows := diff.Align(file, diff.HunkOnly)
+
+		foundContext := false
+		for _, row := range rows {
+			if row.Left.Kind == diff.LineContext && row.Left.Content != "" {
+				foundContext = true
+				break
+			}
+		}
+		if !foundContext {
+			t.Error("Align(simple.diff, HunkOnly): no non-blank LineContext rows found; hunk context lines are missing")
+		}
+	})
+
 	t.Run("filestatus_helper", func(t *testing.T) {
 		// FileStatus is exercised by Align internally; verify via observable behaviour:
 		// a new-file fixture should produce only LineAdded/LineBlank rows (status [A]).
