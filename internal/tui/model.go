@@ -41,7 +41,8 @@ const (
 type resizePollMsg struct{}
 
 type model struct {
-	files []*gitdiff.File
+	files  []*gitdiff.File
+	darkBg bool
 
 	ready       bool
 	termWidth   int
@@ -71,8 +72,10 @@ type model struct {
 }
 
 // NewModel creates the initial bubbletea model. files must be non-nil (may be empty).
-// Called from cmd/alturd/main.go after git+parse complete (D-06).
-func NewModel(files []*gitdiff.File) model {
+// darkBg should be true when the terminal background is dark; it controls status
+// marker colours in the tree pane. Called from cmd/alturd/main.go after git+parse
+// and background detection complete (D-06).
+func NewModel(files []*gitdiff.File, darkBg bool) model {
 	ti := textinput.New()
 	ti.Prompt = "/"
 	ti.Placeholder = "search..."
@@ -90,6 +93,7 @@ func NewModel(files []*gitdiff.File) model {
 
 	return model{
 		files:       files,
+		darkBg:      darkBg,
 		focusedPane: diffFocused,
 		treeWidth:   treeWidthUnfocused,
 		searchInput: ti,
@@ -263,6 +267,47 @@ func (m *model) refreshTreeContent() {
 	m.treeVP.SetContent(content)
 }
 
+// statusMarkerStyle returns a lipgloss Style that applies an appropriate foreground
+// colour to a file-status marker based on the marker text and terminal background.
+// Colours use 256-colour ANSI codes chosen to be readable on both dark and light
+// backgrounds: darker shades for light terminals, brighter shades for dark terminals.
+func statusMarkerStyle(status string, darkBg bool) lipgloss.Style {
+	var code string
+	switch status {
+	case "[A]":
+		if darkBg {
+			code = "82" // bright green
+		} else {
+			code = "28" // dark green
+		}
+	case "[D]":
+		if darkBg {
+			code = "203" // bright red
+		} else {
+			code = "88" // dark red
+		}
+	case "[M]":
+		if darkBg {
+			code = "220" // bright yellow
+		} else {
+			code = "136" // dark amber
+		}
+	case "[R]", "[C]":
+		if darkBg {
+			code = "81" // bright cyan
+		} else {
+			code = "26" // dark blue
+		}
+	default: // [B], [S], unknown
+		if darkBg {
+			code = "245" // medium gray
+		} else {
+			code = "240" // dark gray
+		}
+	}
+	return lipgloss.NewStyle().Foreground(lipgloss.Color(code))
+}
+
 func (m *model) renderTree() string {
 	var sb strings.Builder
 	for i, row := range m.treeFlat {
@@ -275,13 +320,13 @@ func (m *model) renderTree() string {
 			}
 			line = indent + glyph + " " + row.node.Name
 		} else {
-			marker := row.node.Status
-			if marker == "" {
-				marker = "   "
+			status := row.node.Status
+			if status == "" {
+				line = indent + "    " + row.node.Name
 			} else {
-				marker = marker + " "
+				colored := statusMarkerStyle(status, m.darkBg).Render(status)
+				line = indent + colored + " " + row.node.Name
 			}
-			line = indent + marker + row.node.Name
 		}
 		line = lipgloss.NewStyle().MaxWidth(m.treeWidth).Render(line)
 		if i == m.treeIdx {

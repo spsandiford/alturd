@@ -11,9 +11,10 @@ import (
 )
 
 // newModelWith creates a model from files and simulates a WindowSizeMsg so ready=true.
+// darkBg defaults to false (light terminal) matching CI environments.
 func newModelWith(t *testing.T, files []*gitdiff.File) model {
 	t.Helper()
-	m := NewModel(files)
+	m := NewModel(files, false)
 	m.handleResize(200, 50)
 	return m
 }
@@ -34,7 +35,7 @@ func parseAllFixture(t *testing.T, fixture string) []*gitdiff.File {
 }
 
 func TestModel_NotReady(t *testing.T) {
-	m := NewModel(nil)
+	m := NewModel(nil, false)
 	v := m.View()
 	if v.Content != "" {
 		t.Errorf("View() before WindowSizeMsg: got %q, want empty string (D-07)", v.Content)

@@ -75,13 +75,14 @@ func run(cmd *cobra.Command, args []string) error {
 	// Detect terminal background before bubbletea takes over the TTY.
 	// termenv queries OSC 11 with a short timeout and falls back to COLORFGBG.
 	// Must be called here, not inside tea.NewProgram, while stdout is still raw.
-	diff.SetDarkBackground(termenv.NewOutput(os.Stdout).HasDarkBackground())
+	darkBg := termenv.NewOutput(os.Stdout).HasDarkBackground()
+	diff.SetDarkBackground(darkBg)
 
 	// Phase 3: launch bubbletea TUI (D-06).
 	// Data is pre-loaded; no async loading inside the model.
 	// In bubbletea v2, alternate screen is declared in the model's View()
 	// via view.AltScreen=true rather than as a program option (v2 upgrade guide).
-	m := tui.NewModel(files)
+	m := tui.NewModel(files, darkBg)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		return err
