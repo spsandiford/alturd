@@ -3,9 +3,11 @@ package tui
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 
 	"github.com/alturd/alturd/internal/config"
@@ -362,5 +364,119 @@ func TestKeymapOverrideDispatchesInModel(t *testing.T) {
 	_, cmd = m.Update(tea.KeyPressMsg{Code: 'q'})
 	if cmd != nil {
 		t.Error("'q' key (former default, now unbound): expected nil Cmd, got non-nil")
+	}
+}
+
+// TestDifftoolTitleBar is table-driven over the five title-bar rows from
+// 04-03-PLAN.md Task 3's behavior block, asserting on the trimmed rendered
+// string (DIFFTOOL-02).
+func TestDifftoolTitleBar(t *testing.T) {
+	tests := []struct {
+		name       string
+		dt         DifftoolInfo
+		searchMode bool
+		want       string
+	}{
+		{
+			name:       "counters_present",
+			dt:         DifftoolInfo{Enabled: true, Counter: 3, Total: 7, Filename: "render.go"},
+			searchMode: false,
+			want:       "alturd (difftool) — 3 of 7 — render.go",
+		},
+		{
+			name:       "counters_absent",
+			dt:         DifftoolInfo{Enabled: true, Counter: 0, Total: 0, Filename: "render.go"},
+			searchMode: false,
+			want:       "alturd (difftool) — render.go",
+		},
+		{
+			name:       "counters_present_search_open",
+			dt:         DifftoolInfo{Enabled: true, Counter: 3, Total: 7, Filename: "render.go"},
+			searchMode: true,
+			want:       "alturd (difftool) — 3 of 7 — render.go [SEARCH]",
+		},
+		{
+			name:       "counters_equal_boundary",
+			dt:         DifftoolInfo{Enabled: true, Counter: 1, Total: 1, Filename: "render.go"},
+			searchMode: false,
+			want:       "alturd (difftool) — 1 of 1 — render.go",
+		},
+		{
+			name:       "counters_adjacent_boundary",
+			dt:         DifftoolInfo{Enabled: true, Counter: 7, Total: 7, Filename: "render.go"},
+			searchMode: false,
+			want:       "alturd (difftool) — 7 of 7 — render.go",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := NewModel(nil, false, config.DefaultKeymap(), tc.dt)
+			m.handleResize(200, 50)
+			m.searchMode = tc.searchMode
+
+			got := strings.TrimRight(m.difftoolTitleBar(), " ")
+			if got != tc.want {
+				t.Errorf("difftoolTitleBar() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDifftoolLayoutHasNoTree verifies that in difftool mode, handleResize
+// gives the diff viewport the full terminal width (no treeWidth/separator
+// subtraction) and View() renders no tree-pane/separator column appended
+// beside the diff pane (DIFFTOOL-01). Body line width (not glyph presence)
+// is the correct assertion here: diff.Render's own " │ " old/new column
+// separator is a legitimate part of every diff row in both modes — only the
+// *pane*-level tree/diff separator column is difftool-mode-specific, and its
+// absence shows up as the line's total display width matching diffVP.Width()
+// exactly rather than treeWidth+1 wider.
+func TestDifftoolLayoutHasNoTree(t *testing.T) {
+	files := parseAllFixture(t, "simple.diff")
+	dt := DifftoolInfo{Enabled: true, Filename: "render.go"}
+	m := NewModel(files, false, config.DefaultKeymap(), dt)
+	m.handleResize(200, 50)
+
+	if got := m.diffVP.Width(); got != 200 {
+		t.Errorf("after handleResize(200, 50): diffVP.Width() = %d, want 200 (no tree/separator subtraction)", got)
+	}
+
+	view := m.View().Content
+	lines := strings.Split(view, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("View() has %d lines, want at least 2 (title bar + body)", len(lines))
+	}
+	// lines[0] is the title bar; lines[1] is the first diff-pane body row.
+	if w := lipgloss.Width(lines[1]); w != 200 {
+		t.Errorf("difftool mode body line display width = %d, want 200 (no tree pane/separator column appended)", w)
+	}
+}
+
+// TestDifftoolTabAndAllFilesAreNoOps verifies that Tab and 'a' leave
+// treeWidth, focusedPane and allFiles unchanged in difftool mode
+// (DIFFTOOL-01, 04-UI-SPEC.md Interaction States).
+func TestDifftoolTabAndAllFilesAreNoOps(t *testing.T) {
+	dt := DifftoolInfo{Enabled: true, Filename: "render.go"}
+	m := NewModel(nil, false, config.DefaultKeymap(), dt)
+	m.handleResize(200, 50)
+
+	treeWidthBefore := m.treeWidth
+	focusedPaneBefore := m.focusedPane
+	allFilesBefore := m.allFiles
+
+	m2, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+	m = m2.(model)
+	if m.treeWidth != treeWidthBefore {
+		t.Errorf("after Tab in difftool mode: treeWidth = %d, want %d (unchanged)", m.treeWidth, treeWidthBefore)
+	}
+	if m.focusedPane != focusedPaneBefore {
+		t.Errorf("after Tab in difftool mode: focusedPane = %v, want %v (unchanged)", m.focusedPane, focusedPaneBefore)
+	}
+
+	m3, _ := m.Update(tea.KeyPressMsg{Code: 'a'})
+	m = m3.(model)
+	if m.allFiles != allFilesBefore {
+		t.Errorf("after 'a' in difftool mode: allFiles = %v, want %v (unchanged)", m.allFiles, allFilesBefore)
 	}
 }

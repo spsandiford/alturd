@@ -182,6 +182,24 @@ func (m model) View() tea.View {
 		return tea.NewView("")
 	}
 
+	diffStr := m.diffVP.View()
+
+	var searchBar string
+	if m.searchMode {
+		searchBar = "\n" + m.searchInput.View()
+	}
+
+	// Difftool mode (DIFFTOOL-01): reduced-chrome variant — the difftool
+	// title bar replaces the standalone status bar entirely (the two
+	// templates are alternatives, never concatenated), and the body is the
+	// diff viewport plus the optional search bar only: no treeVP.View(),
+	// no separator column, no lipgloss.JoinHorizontal call at all.
+	if m.difftool.Enabled {
+		v := tea.NewView(m.difftoolTitleBar() + "\n" + diffStr + searchBar)
+		v.AltScreen = true
+		return v
+	}
+
 	fileName := ""
 	if len(m.files) > 0 {
 		f := m.files[m.currentFile]
@@ -200,12 +218,6 @@ func (m model) View() tea.View {
 	statusBar = lipgloss.NewStyle().Width(m.termWidth).Render(statusBar)
 
 	treeStr := m.treeVP.View()
-	diffStr := m.diffVP.View()
-
-	var searchBar string
-	if m.searchMode {
-		searchBar = "\n" + m.searchInput.View()
-	}
 
 	// Build a full-height separator column: JoinHorizontal pads a single "│"
 	// with empty strings for all rows beyond the first, making the separator
@@ -231,6 +243,28 @@ func (m model) View() tea.View {
 	return v
 }
 
+// difftoolTitleBar implements the DIFFTOOL-02 Copywriting Contract. Segment
+// order is fixed and never varies: the literal "alturd (difftool)", then
+// " — {Counter} of {Total}" only when both Counter and Total are greater
+// than zero, then " — {Filename}", then " [SEARCH]" only when m.searchMode.
+// Counter and Total render with %d exactly as received — including when
+// equal or adjacent — never clamped, wrapped or special-cased. A long
+// filename is truncated with an ellipsis via lipgloss MaxWidth rather than
+// wrapping onto a second row, then padded to m.termWidth the same way the
+// standalone status bar is.
+func (m model) difftoolTitleBar() string {
+	title := "alturd (difftool)"
+	if m.difftool.Counter > 0 && m.difftool.Total > 0 {
+		title += fmt.Sprintf(" — %d of %d", m.difftool.Counter, m.difftool.Total)
+	}
+	title += " — " + m.difftool.Filename
+	if m.searchMode {
+		title += " [SEARCH]"
+	}
+	title = lipgloss.NewStyle().MaxWidth(m.termWidth).Render(title)
+	return lipgloss.NewStyle().Width(m.termWidth).Render(title)
+}
+
 func (m *model) handleResize(w, h int) {
 	m.termWidth = w
 	m.termHeight = h
@@ -240,6 +274,17 @@ func (m *model) handleResize(w, h int) {
 	if m.searchMode {
 		contentH--
 	}
+
+	// Difftool mode (DIFFTOOL-01): the diff pane takes the full width — no
+	// treeWidth/separator subtraction — and no tree viewport exists to size
+	// or refresh.
+	if m.difftool.Enabled {
+		m.diffVP.SetWidth(w)
+		m.diffVP.SetHeight(contentH)
+		m.refreshDiffContent()
+		return
+	}
+
 	diffW := w - m.treeWidth - 1
 
 	m.treeVP.SetWidth(m.treeWidth)
@@ -255,12 +300,26 @@ func (m *model) refreshDiffContent() {
 	if len(m.files) == 0 {
 		return
 	}
-	diffW := m.termWidth - m.treeWidth - 1
+	diffW := m.termWidth
+	if !m.difftool.Enabled {
+		diffW = m.termWidth - m.treeWidth - 1
+	}
 	file := m.files[m.currentFile]
 
 	var rows []string
 	if m.renderMode == diff.FullFile {
-		fileLines, err := fetchFileLines(file)
+		var fileLines []string
+		var err error
+		if m.difftool.Enabled {
+			// Difftool mode: use the already-loaded post-image lines instead
+			// of fetchFileLines, which shells out to `git show HEAD:<name>` —
+			// meaningless for a file git handed us as a temp path. This keeps
+			// full-file mode (DIFF-05) working in difftool mode rather than
+			// silently degrading to hunk-context rendering.
+			fileLines = m.difftool.NewFileLines
+		} else {
+			fileLines, err = fetchFileLines(file)
+		}
 		if err == nil {
 			rows = diff.RenderFull(file, diffW, fileLines)
 			m.hunkRows = diff.HunkStartRowsFull(file)
@@ -448,6 +507,15 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// every normal-mode key passes through exactly one Lookup call, so a
 	// rebound key and its former default can never both fire).
 	action := m.keys.Lookup(msg.String())
+
+	// Difftool mode (DIFFTOOL-01): Tab and 'a' are no-ops — no tree pane
+	// exists to focus or toggle. This guard must run before any tree-scoped
+	// action executes, so it prevents a resize of a viewport that was never
+	// sized rather than merely hiding a cosmetic affordance.
+	if m.difftool.Enabled && (action == config.ActionToggleFocus || action == config.ActionToggleAllFiles) {
+		return m, nil
+	}
+
 	switch action {
 	case config.ActionQuit:
 		return m, tea.Quit
