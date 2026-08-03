@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: config-theming-difftool-distribution
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-08-03T21:06:29.779Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-08-03T21:21:17.441Z"
 last_activity: 2026-08-03
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 15
-  completed_plans: 13
+  completed_plans: 14
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-06-27)
 ## Current Position
 
 Phase: 04 (config-theming-difftool-distribution) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-08-03 — Phase 04 execution started
 
-Progress: [████████████████████] 3/3 plans ([█████████░] 87%)
+Progress: [████████████████████] 3/3 plans ([█████████░] 93%)
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [████████████████████] 3/3 pla
 |------|----------|-------|-------|
 | Phase 04 P01 | 35min | 3 tasks | 9 files |
 | Phase 04 P02 | ~20min | 2 tasks | 16 files |
+| Phase 04 P03 | 13min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Keymap.Merge validates strictly two-directionally (D-02): unknown action -> unrecognized key -> merge -> duplicate scan over the merged map (merge-then-validate), producing deterministic canonical-order error messages
 - [Phase ?]: Phase 4 Plan 2: golangci-lint v2.7.2 and goreleaser v2.17.1 installed locally to validate CI/release config with real tooling (goreleaser check, snapshot build, ldd) rather than structural checks alone
 - [Phase ?]: Phase 4 Plan 2: fixed all 20 pre-existing golangci-lint findings in Phase 1-3/04-01 code (errcheck, revive) so the new CI lint gate lands green on first run
+- [Phase ?]: Phase 4 Plan 3: THEME-01 D-05/D-06/D-07 precedence implemented as pure ResolveDarkBackground(flagTheme, cfgTheme, difftoolMode, detect) with injectable detector; 50ms OSC 11 bound imposed externally since termenv.OSCTimeout is an unexported const
+- [Phase ?]: Phase 4 Plan 3: difftoolDiff uses git diff --no-index's own exit-code contract (0=identical, 1=differs), distinct from internal/git.ExecRunner's diff-runner-specific error mapping
+- [Phase ?]: Phase 4 Plan 3: tui.DifftoolInfo struct and NewModel's 4-arg signature introduced in Task 2 (not Task 3 as plan text implied) so Task 2's own build/verify gate passes — Rule 3 auto-fix
 
 ### Pending Todos
 
@@ -104,6 +108,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-03T21:06:29.767Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-08-03T21:21:17.429Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None

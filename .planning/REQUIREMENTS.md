@@ -42,14 +42,14 @@
 
 ### Theming & Config
 
-- [ ] **THEME-01**: User sees light/dark/auto theming — terminal background detected via OSC 11 with 50ms timeout fallback to dark
+- [x] **THEME-01**: User sees light/dark/auto theming — terminal background detected via OSC 11 with 50ms timeout fallback to dark
 - [x] **CONFIG-01**: User can place a TOML config file at `$XDG_CONFIG_HOME/alturd/config.toml` (or pass `--config <path>`) to override defaults
 - [x] **CONFIG-02**: User can override any default keybinding via the config file
 
 ### Difftool Integration
 
-- [ ] **DIFFTOOL-01**: User can invoke `alturd --difftool-local <path> --difftool-remote <path> --difftool-path <path>` to open a single-file side-by-side view without the file tree (for use by `git difftool`)
-- [ ] **DIFFTOOL-02**: TitleBar shows "alturd (difftool) — N of M — `<filename>`" when `GIT_DIFF_PATH_COUNTER`/`GIT_DIFF_PATH_TOTAL` env vars are set
+- [x] **DIFFTOOL-01**: User can invoke `alturd --difftool-local <path> --difftool-remote <path> --difftool-path <path>` to open a single-file side-by-side view without the file tree (for use by `git difftool`)
+- [x] **DIFFTOOL-02**: TitleBar shows "alturd (difftool) — N of M — `<filename>`" when `GIT_DIFF_PATH_COUNTER`/`GIT_DIFF_PATH_TOTAL` env vars are set
 - [ ] **DIFFTOOL-03**: User can run `alturd install-difftool [--scope global|local] [--name NAME] [--force]` to write the four canonical gitconfig keys idempotently
 
 ### Distribution
@@ -111,11 +111,11 @@
 | TREE-02 | Phase 3 | Complete |
 | TREE-03 | Phase 3 | Complete |
 | SEARCH-01 | Phase 3 | Complete |
-| THEME-01 | Phase 4 | Pending |
+| THEME-01 | Phase 4 | Complete |
 | CONFIG-01 | Phase 4 | Complete |
 | CONFIG-02 | Phase 4 | Complete |
-| DIFFTOOL-01 | Phase 4 | Pending |
-| DIFFTOOL-02 | Phase 4 | Pending |
+| DIFFTOOL-01 | Phase 4 | Complete |
+| DIFFTOOL-02 | Phase 4 | Complete |
 | DIFFTOOL-03 | Phase 4 | Pending |
 | DIST-01 | Phase 4 | Complete |
 | DIST-02 | Phase 4 | Complete |

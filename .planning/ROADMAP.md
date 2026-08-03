@@ -118,7 +118,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Every push to GitHub runs `go test ./...` on Linux, macOS, and Windows via GitHub Actions CI
   5. A git tag push triggers goreleaser to publish `CGO_ENABLED=0` binaries for Linux (amd64/arm64), macOS (amd64/arm64), and Windows (amd64) as GitHub Release assets
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 **UI hint**: yes
 
 **Wave 1** *(parallel — no shared files)*
@@ -128,7 +128,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on Wave 1 — extends internal/config, main.go and model.go)*
 
-- [ ] 04-03-PLAN.md — theme resolution with 50ms-bounded OSC 11 detection and `--theme` precedence (THEME-01), difftool single-file mode and title bar (DIFFTOOL-01, DIFFTOOL-02)
+- [x] 04-03-PLAN.md — theme resolution with 50ms-bounded OSC 11 detection and `--theme` precedence (THEME-01), difftool single-file mode and title bar (DIFFTOOL-01, DIFFTOOL-02)
 
 **Wave 3** *(blocked on Wave 2 — writes a gitconfig cmd naming the flags Wave 2 registers)*
 
@@ -144,4 +144,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Diff Model | 3/3 | Complete    | 2026-06-26 |
 | 2. Git Layer + CLI | 3/3 | Complete    | 2026-06-29 |
 | 3. TUI Application | 5/5 | Complete    | 2026-07-24 |
-| 4. Config + Theming + Difftool + Distribution | 2/4 | In Progress|  |
+| 4. Config + Theming + Difftool + Distribution | 3/4 | In Progress|  |
