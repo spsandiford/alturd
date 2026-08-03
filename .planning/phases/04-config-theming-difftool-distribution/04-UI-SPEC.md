@@ -1,7 +1,7 @@
 ---
 phase: 4
 slug: config-theming-difftool-distribution
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-03
@@ -264,24 +264,31 @@ CLI/TUI conventions (explicit flag, or immediate keypress) rather than a modal.
 
 ## UI Considerations
 
-Applicable state considerations resolved: 5 covered, 0 backstop, 0 unresolved.
+Ran via the compiled `ui-consideration-probe` engine against 5 elements (title bar, difftool
+diff view, config validation, `install-difftool` CLI, theme resolution). Applicable state
+considerations resolved: 13 covered/dismissed, 0 backstop, 0 unresolved.
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| empty | difftool single-file view | ✅ covered | Difftool mode always has exactly one file (`--difftool-local/-remote/-path` are required together) — no empty-data state is reachable; dismissed as not applicable rather than needing copy |
-| error | config validation (unknown field/action/key, duplicate binding, invalid theme) | ✅ covered | Exact single-line templates specified in Copywriting Contract §Config Validation Errors |
-| error | `install-difftool` (existing tool without `--force`, `--scope local` outside repo) | ✅ covered | Exact copy specified in Copywriting Contract §`install-difftool` CLI Output |
-| overflow | difftool title bar filename | ✅ covered | `lipgloss.Style.MaxWidth` truncation with ellipsis, same mechanism as tree filename truncation (03-UI-SPEC.md D-04), applied to the title bar row |
-| partial | difftool title bar counters (`GIT_DIFF_PATH_COUNTER`/`TOTAL` env vars absent) | ✅ covered | Fallback template `alturd (difftool) — {filename}` drops the `{N} of {M}` segment entirely rather than rendering blank/zero placeholders |
+| Category | Element | Status | Resolution / Reason |
+|----------|---------|--------|---------------------|
+| overflow | Difftool title bar (long filename) | ✅ covered | `lipgloss.Style.MaxWidth` truncation with ellipsis, same mechanism as tree filename truncation (03-UI-SPEC.md D-04), applied to the title bar row |
+| long-text | Difftool title bar | ✅ covered | Same truncation mechanism as the row above — not a separate concern for this surface |
+| loading | Difftool diff view | ✅ dismissed | No async operation is introduced in Phase 4 — config load, theme detection, and gitconfig writes are all synchronous, consistent with the project's existing sync-only pattern |
+| error | Difftool diff view | ✅ dismissed | Diff parsing/rendering error handling is inherited from Phase 1/3 (`gitdiff` parsing); Phase 4 only adds the reduced-chrome layout around the existing pane, no new error path is introduced |
+| overflow | Difftool diff view | ✅ covered | Inherited diff-pane scrolling (`viewport`) from Phase 1/3, unchanged by difftool mode's width-only layout change |
+| long-text | Difftool diff view | ✅ covered | Same inherited scrolling/wrapping as the row above — not a new concern introduced this phase |
+| empty | Config validation | ✅ dismissed | Not applicable — TOML config always resolves via documented defaults for absent keys; there is no "empty form" state to render |
+| loading | Config validation | ✅ dismissed | Config parsing happens synchronously at startup, before any TUI/event loop exists — no loading state is reachable |
+| error | Config validation | ✅ covered | Exact single-line templates specified in Copywriting Contract §Config Validation Errors |
+| partial | Config validation | ✅ dismissed | Missing individual keys use documented defaults per-key; this is normal operation, not a partial/incomplete error state requiring distinct UI |
+| long-text | Config validation | ✅ dismissed | Error strings interpolate bounded identifiers (field/action/key names from the TOML source), not user-authored prose — no wrapping/truncation is needed |
+| unclassified | `install-difftool` CLI output | ✅ covered | Plain CLI text, but fully enumerated for all 5 code paths (first install, idempotent re-run, `--force` overwrite, blocked overwrite, `--scope local` outside repo) with exit codes in Copywriting Contract §`install-difftool` CLI Output |
+| unclassified | Theme resolution | ✅ dismissed | Not a rendered UI element — it is a deterministic precedence resolver selecting between two already-specified palettes (dark fallback always wins if unresolved); no independent empty/loading/error state applies to the selection logic itself |
 
-Categories not raised (dismissed, no UI element of the applicable kind exists this phase):
-`loading` — no async operation is introduced in Phase 4 (config load, theme detection, and
-gitconfig writes are all synchronous, consistent with the project's existing sync-only pattern);
-`zero-one-many` — difftool mode is definitionally single-file, so a one/many distinction does
-not apply within a single model instance (the "many files" concept lives at the shell-loop level
-across separate `git difftool` process spawns, outside this TUI's rendering responsibility);
-`long-text` — covered by the `overflow` row above (same truncation mechanism, not a separate
-concern for this phase's new surfaces).
+Also confirmed out of scope for this phase's new surfaces (no applicable element of the kind
+exists): `zero-one-many` — difftool mode is definitionally single-file, so a one/many distinction
+does not apply within a single model instance (the "many files" concept lives at the shell-loop
+level across separate `git difftool` process spawns, outside this TUI's rendering responsibility);
+`populated` — no new list/collection surface is introduced this phase.
 
 ---
 
@@ -320,11 +327,11 @@ from existing Phase 3 source code (`highlight.go`, `model.go`, `main.go`).
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved (gsd-ui-checker, no revision iterations needed)
