@@ -3,6 +3,7 @@ package config_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/adrg/xdg"
@@ -67,13 +68,55 @@ func TestLoad_PartialKeybindingOverride(t *testing.T) {
 }
 
 // TestLoad_MissingExplicitPath verifies that a missing --config target is a
-// startup error, never a silent fallback to defaults (CONFIG-01).
+// startup error, never a silent fallback to defaults (CONFIG-01), and that
+// the underlying os.Open error is wrapped in the "config: {underlying
+// error}" template rather than reaching the user raw (04-UI-SPEC.md
+// Copywriting Contract, "Config file unreadable" row).
 func TestLoad_MissingExplicitPath(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "does-not-exist.toml")
 
-	if _, err := config.Load(path); err == nil {
+	_, err := config.Load(path)
+	if err == nil {
 		t.Fatalf("Load(%q) = nil error, want an error for a missing explicit path", path)
+	}
+	if got := err.Error(); !strings.HasPrefix(got, "config: ") {
+		t.Errorf("Load(%q) error = %q, want prefix %q", path, got, "config: ")
+	}
+}
+
+// TestLoad_ErrorsAreSingleLine verifies that every error-producing Load path
+// this plan touches returns a single-line message with no embedded newline,
+// so no multi-line stack trace or raw library error dump ever reaches the
+// user (04-UI-SPEC.md Copywriting Contract).
+func TestLoad_ErrorsAreSingleLine(t *testing.T) {
+	dir := t.TempDir()
+
+	missingPath := filepath.Join(dir, "does-not-exist.toml")
+
+	unknownFieldPath := filepath.Join(dir, "unknown-field.toml")
+	if err := os.WriteFile(unknownFieldPath, []byte("themez = \"dark\"\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	unknownActionPath := filepath.Join(dir, "unknown-action.toml")
+	if err := os.WriteFile(unknownActionPath, []byte("[keybindings]\nnex_hunk = \"n\"\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	malformedPath := filepath.Join(dir, "malformed.toml")
+	if err := os.WriteFile(malformedPath, []byte("this is not = = valid toml\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	for _, path := range []string{missingPath, unknownFieldPath, unknownActionPath, malformedPath} {
+		_, err := config.Load(path)
+		if err == nil {
+			t.Fatalf("Load(%q) = nil error, want an error", path)
+		}
+		if strings.Contains(err.Error(), "\n") {
+			t.Errorf("Load(%q) error = %q, contains a newline (want single-line)", path, err.Error())
+		}
 	}
 }
 
