@@ -15,9 +15,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/alturd/alturd/internal/git"
 )
@@ -28,6 +31,105 @@ import (
 // newlines would let a crafted name inject an unrelated key or section into
 // the user's gitconfig (T-04-04-01).
 var toolNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
+
+// difftoolCmdTemplate is the published gitconfig `cmd` value written by
+// install-difftool. Git evaluates this string in a shell on every platform —
+// on Windows that shell is the POSIX sh bundled with Git for Windows, not
+// cmd.exe — so POSIX double-quoting is correct and portable across all three
+// targets (04-RESEARCH.md Pitfall E). $LOCAL/$REMOTE/$MERGED are substituted
+// by git itself, never by alturd, so nothing user-supplied is interpolated
+// into this value. $MERGED maps to --difftool-path because it is the real
+// working-tree filename, while $LOCAL and $REMOTE are git's pre-image and
+// post-image temp files (matches the --difftool-* flags registered in
+// cmd/alturd/main.go by 04-03).
+const difftoolCmdTemplate = `alturd --difftool-local "$LOCAL" --difftool-remote "$REMOTE" --difftool-path "$MERGED"`
+
+// installDifftoolCmd registers alturd as a git difftool backend (DIFFTOOL-03).
+var installDifftoolCmd = &cobra.Command{
+	Use:   "install-difftool",
+	Short: "Register alturd as a git difftool",
+	RunE:  runInstallDifftool,
+}
+
+// init registers --scope/--name/--force (D-09 defaults: scope=global,
+// name=alturd, force=false) and attaches the subcommand to the existing
+// rootCmd, inheriting SilenceErrors/SilenceUsage so main() remains the
+// single place errors are printed.
+func init() {
+	installDifftoolCmd.Flags().String("scope", "global", "config scope: global|local")
+	installDifftoolCmd.Flags().String("name", "alturd", "difftool name to register")
+	installDifftoolCmd.Flags().Bool("force", false, "overwrite an existing diff.tool setting")
+	rootCmd.AddCommand(installDifftoolCmd)
+}
+
+// runInstallDifftool implements the D-08/D-09/D-10 install-difftool
+// contract. --scope and --name are validated before any subprocess runs, so
+// an invalid argument never causes a partial gitconfig write.
+func runInstallDifftool(cmd *cobra.Command, _ []string) error {
+	scope, err := cmd.Flags().GetString("scope")
+	if err != nil {
+		return err
+	}
+	name, err := cmd.Flags().GetString("name")
+	if err != nil {
+		return err
+	}
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return err
+	}
+
+	scopeFlag, err := validateScope(scope)
+	if err != nil {
+		return err
+	}
+	if err := validateToolName(name); err != nil {
+		return err
+	}
+
+	// D-10: read the existing diff.tool value before writing anything.
+	existing, present, err := gitConfigGet(scopeFlag, "diff.tool")
+	if err != nil {
+		return err
+	}
+
+	// existing/name is an exact byte-string comparison — no case folding, no
+	// Unicode normalisation — matching git's own case-sensitive subsection
+	// semantics for the idempotency check (DIFFTOOL-03 encoding edge).
+	overwritingForeignTool := present && existing != name
+	if overwritingForeignTool && !force {
+		return fmt.Errorf("diff.tool is already set to %q; pass --force to overwrite.", existing)
+	}
+
+	// D-08: each of the four canonical keys is written through its own
+	// gitConfigSet call, so git — not alturd — edits the file and preserves
+	// unrelated keys, comments and ordering (T-04-04-03).
+	if err := gitConfigSet(scopeFlag, "diff.tool", name); err != nil {
+		return err
+	}
+	if err := gitConfigSet(scopeFlag, fmt.Sprintf("difftool.%s.cmd", name), difftoolCmdTemplate); err != nil {
+		return err
+	}
+	if err := gitConfigSet(scopeFlag, "difftool.prompt", "false"); err != nil {
+		return err
+	}
+	if err := gitConfigSet(scopeFlag, "difftool.trustExitCode", "true"); err != nil {
+		return err
+	}
+
+	switch {
+	case overwritingForeignTool:
+		fmt.Fprintf(os.Stdout, "Overwrote existing diff.tool %q with %q (scope: %s, --force).\n", existing, name, scope)
+	case present:
+		// present && existing == name: idempotent re-run — the four keys were
+		// still re-written above (that is what "idempotent" means under D-10:
+		// the command converges the config), but the copy signals no change.
+		fmt.Fprintf(os.Stdout, "alturd is already configured as git difftool %q (scope: %s).\n", name, scope)
+	default:
+		fmt.Fprintf(os.Stdout, "Installed alturd as git difftool %q (scope: %s).\n", name, scope)
+	}
+	return nil
+}
 
 // gitConfigRun executes "git config <args...>" in argv form and returns
 // stdout, git's own exit code, and an error only for conditions gitConfigRun
