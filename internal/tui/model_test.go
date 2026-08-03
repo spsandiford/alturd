@@ -2,19 +2,23 @@ package tui
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 
+	"github.com/alturd/alturd/internal/config"
 	"github.com/alturd/alturd/internal/diff"
 )
 
 // newModelWith creates a model from files and simulates a WindowSizeMsg so ready=true.
-// darkBg defaults to false (light terminal) matching CI environments.
+// darkBg defaults to false (light terminal) matching CI environments. Uses
+// config.DefaultKeymap() so the existing Phase 3 suite keeps exercising the
+// default bindings unchanged.
 func newModelWith(t *testing.T, files []*gitdiff.File) model {
 	t.Helper()
-	m := NewModel(files, false)
+	m := NewModel(files, false, config.DefaultKeymap())
 	m.handleResize(200, 50)
 	return m
 }
@@ -35,7 +39,7 @@ func parseAllFixture(t *testing.T, fixture string) []*gitdiff.File {
 }
 
 func TestModel_NotReady(t *testing.T) {
-	m := NewModel(nil, false)
+	m := NewModel(nil, false, config.DefaultKeymap())
 	v := m.View()
 	if v.Content != "" {
 		t.Errorf("View() before WindowSizeMsg: got %q, want empty string (D-07)", v.Content)
@@ -326,5 +330,37 @@ func TestModel_TreeExpandCollapse(t *testing.T) {
 	if len(m.treeFlat) != flatBefore {
 		t.Errorf("after 2nd Enter on dir: treeFlat len = %d, want %d (collapsed)",
 			len(m.treeFlat), flatBefore)
+	}
+}
+
+// TestKeymapOverrideDispatchesInModel is the tracer's end-to-end assertion
+// (04-01-PLAN.md Task 2): a TOML file rebinding the quit action to "x" is
+// loaded into a real config.Keymap via config.Load, that Keymap is passed
+// into NewModel, and the running model dispatches quit on the rebound key
+// while the former default key ("q") no longer does (CONFIG-01, CONFIG-02).
+func TestKeymapOverrideDispatchesInModel(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.toml")
+	contents := "[keybindings]\nquit = \"x\"\n"
+	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("config.Load(%q) = _, %v, want nil error", path, err)
+	}
+
+	m := NewModel(nil, false, cfg.Keys)
+	m.handleResize(200, 50)
+
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'x'})
+	if cmd == nil {
+		t.Error("'x' key (rebound quit): expected non-nil Cmd (tea.Quit), got nil")
+	}
+
+	_, cmd = m.Update(tea.KeyPressMsg{Code: 'q'})
+	if cmd != nil {
+		t.Error("'q' key (former default, now unbound): expected nil Cmd, got non-nil")
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"golang.org/x/term"
 
+	"github.com/alturd/alturd/internal/config"
 	"github.com/alturd/alturd/internal/diff"
 	"github.com/alturd/alturd/internal/git"
 )
@@ -43,6 +44,7 @@ type resizePollMsg struct{}
 type model struct {
 	files  []*gitdiff.File
 	darkBg bool
+	keys   config.Keymap
 
 	ready       bool
 	termWidth   int
@@ -73,9 +75,15 @@ type model struct {
 
 // NewModel creates the initial bubbletea model. files must be non-nil (may be empty).
 // darkBg should be true when the terminal background is dark; it controls status
-// marker colours in the tree pane. Called from cmd/alturd/main.go after git+parse
-// and background detection complete (D-06).
-func NewModel(files []*gitdiff.File, darkBg bool) model {
+// marker colours in the tree pane. keys resolves every normal-mode keypress to an
+// action (config.Keymap.Lookup); a nil keys defaults to config.DefaultKeymap() so
+// existing callers that pass no override still get Phase 3's default bindings.
+// Called from cmd/alturd/main.go after git+parse and background detection complete (D-06).
+func NewModel(files []*gitdiff.File, darkBg bool, keys config.Keymap) model {
+	if keys == nil {
+		keys = config.DefaultKeymap()
+	}
+
 	ti := textinput.New()
 	ti.Prompt = "/"
 	ti.Placeholder = "search..."
@@ -94,6 +102,7 @@ func NewModel(files []*gitdiff.File, darkBg bool) model {
 	return model{
 		files:       files,
 		darkBg:      darkBg,
+		keys:        keys,
 		focusedPane: diffFocused,
 		treeWidth:   treeWidthUnfocused,
 		searchInput: ti,
@@ -413,15 +422,20 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	switch msg.String() {
-	case "q":
+	// Resolve the pressed key to a rebindable action through the single
+	// config.Keymap lookup (D-04 assumption-delta: promote, not add-alongside —
+	// every normal-mode key passes through exactly one Lookup call, so a
+	// rebound key and its former default can never both fire).
+	action := m.keys.Lookup(msg.String())
+	switch action {
+	case config.ActionQuit:
 		return m, tea.Quit
-	case "Q":
+	case config.ActionAbort:
 		os.Exit(1)
-	case "tab":
+	case config.ActionToggleFocus:
 		m.toggleFocus()
 		m.handleResize(m.termWidth, m.termHeight)
-	case "v":
+	case config.ActionToggleRenderMode:
 		if m.renderMode == diff.FullFile {
 			m.renderMode = diff.HunkOnly
 		} else {
@@ -429,50 +443,57 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		m.refreshDiffContent()
 		m.scrollToFirstHunk()
-	case "n":
+	case config.ActionNextHunk:
 		m.hunkNext()
-	case "N":
+	case config.ActionPrevHunk:
 		m.hunkPrev()
-	case "]":
+	case config.ActionNextFile:
 		m.handleFileCycle(true)
-	case "[":
+	case config.ActionPrevFile:
 		m.handleFileCycle(false)
-	case "enter", "l", "right":
-		if m.focusedPane == treeFocused {
-			m.treeToggleExpand()
-		}
-	case "j", "down":
-		if m.focusedPane == treeFocused {
-			m.treeIdxMove(1)
-		} else {
-			m.diffVP.ScrollDown(1)
-		}
-	case "k", "up":
-		if m.focusedPane == treeFocused {
-			m.treeIdxMove(-1)
-		} else {
-			m.diffVP.ScrollUp(1)
-		}
-	case "/":
+	case config.ActionOpenSearch:
 		// D-13: open search — shrink viewport by 1 row, focus textinput (SEARCH-01).
 		m.searchMode = true
 		m.searchTyping = true
 		m.handleResize(m.termWidth, m.termHeight)
 		return m, m.searchInput.Focus()
-	case "a":
+	case config.ActionToggleAllFiles:
 		// D-11: toggle between changed-files-only and full-repo tree (TREE-03).
 		m.toggleAllFiles()
 	default:
-		// Route scroll/navigation keys to the focused pane. When the tree pane
-		// is focused (Tab pressed), arrow/vim keys scroll the tree; otherwise
-		// they scroll the diff. This ensures j/k/arrows work in both panes.
-		var cmd tea.Cmd
-		if m.focusedPane == treeFocused {
-			m.treeVP, cmd = m.treeVP.Update(msg)
-		} else {
-			m.diffVP, cmd = m.diffVP.Update(msg)
+		// config.ActionNone — not one of the ten rebindable actions. These
+		// pane-scroll keys and the viewport-forwarding fallback are NOT
+		// rebindable (03-UI-SPEC.md scopes them outside the Key Binding
+		// Contract), so they stay a literal switch on msg.String().
+		switch msg.String() {
+		case "enter", "l", "right":
+			if m.focusedPane == treeFocused {
+				m.treeToggleExpand()
+			}
+		case "j", "down":
+			if m.focusedPane == treeFocused {
+				m.treeIdxMove(1)
+			} else {
+				m.diffVP.ScrollDown(1)
+			}
+		case "k", "up":
+			if m.focusedPane == treeFocused {
+				m.treeIdxMove(-1)
+			} else {
+				m.diffVP.ScrollUp(1)
+			}
+		default:
+			// Route scroll/navigation keys to the focused pane. When the tree pane
+			// is focused (Tab pressed), arrow/vim keys scroll the tree; otherwise
+			// they scroll the diff. This ensures j/k/arrows work in both panes.
+			var cmd tea.Cmd
+			if m.focusedPane == treeFocused {
+				m.treeVP, cmd = m.treeVP.Update(msg)
+			} else {
+				m.diffVP, cmd = m.diffVP.Update(msg)
+			}
+			return m, cmd
 		}
-		return m, cmd
 	}
 	return m, nil
 }
