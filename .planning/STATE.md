@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: config-theming-difftool-distribution
-status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-08-03T21:21:17.441Z"
+status: verifying
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-08-03T21:30:58.759Z"
 last_activity: 2026-08-03
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 15
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-06-27)
 
 Phase: 04 (config-theming-difftool-distribution) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-03 — Phase 04 execution started
 
-Progress: [████████████████████] 3/3 plans ([█████████░] 93%)
+Progress: [████████████████████] 3/3 plans ([██████████] 100%)
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [████████████████████] 3/3 pla
 | Phase 04 P01 | 35min | 3 tasks | 9 files |
 | Phase 04 P02 | ~20min | 2 tasks | 16 files |
 | Phase 04 P03 | 13min | 3 tasks | 7 files |
+| Phase 04 P04 | 25min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 3: THEME-01 D-05/D-06/D-07 precedence implemented as pure ResolveDarkBackground(flagTheme, cfgTheme, difftoolMode, detect) with injectable detector; 50ms OSC 11 bound imposed externally since termenv.OSCTimeout is an unexported const
 - [Phase ?]: Phase 4 Plan 3: difftoolDiff uses git diff --no-index's own exit-code contract (0=identical, 1=differs), distinct from internal/git.ExecRunner's diff-runner-specific error mapping
 - [Phase ?]: Phase 4 Plan 3: tui.DifftoolInfo struct and NewModel's 4-arg signature introduced in Task 2 (not Task 3 as plan text implied) so Task 2's own build/verify gate passes — Rule 3 auto-fix
+- [Phase ?]: Phase 4 Plan 4: gitConfigRun must prepend the literal "config" git subcommand itself (git config <args>) — plan text/research examples omitted it, which would fail every invocation with git's own usage error (Rule 1 auto-fix)
+- [Phase ?]: Phase 4 Plan 4: local-scope-outside-repo stderr detection widened to substring "git repository" (covers git 2.39.5's actual "--local can only be used inside a git repository" wording, not just the RESEARCH.md-assumed "not a git repository") (Rule 1 auto-fix)
 
 ### Pending Todos
 
@@ -108,6 +111,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-03T21:21:17.429Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-08-03T21:30:58.748Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
