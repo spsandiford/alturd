@@ -4,13 +4,19 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	tea "charm.land/bubbletea/v2"
-	"github.com/muesli/termenv"
+	"github.com/bluekeyes/go-gitdiff/gitdiff"
 
 	"github.com/alturd/alturd/internal/config"
 	"github.com/alturd/alturd/internal/diff"
@@ -38,12 +44,20 @@ var rootCmd = &cobra.Command{
 	RunE:          run,
 }
 
-// init registers the --config flag on rootCmd. Flag registration only wires
+// init registers rootCmd's persistent flags. Flag registration only wires
 // cobra's flag parser; it does not read the filesystem, so --help/--version
 // remain side-effect-free (D-03 is enforced later, inside run(), by
 // config.Load itself never being called from init or PersistentPreRunE).
+//
+// The three --difftool-* flags have no short forms: each is either rarely
+// typed by hand or invoked by git itself, so a single-letter alias would
+// only burn namespace.
 func init() {
 	rootCmd.PersistentFlags().String("config", "", "path to a TOML config file (default: $XDG_CONFIG_HOME/alturd/config.toml)")
+	rootCmd.PersistentFlags().String("theme", "", "theme override: light|dark|auto")
+	rootCmd.PersistentFlags().String("difftool-local", "", "difftool mode: path to the local (old) file (git's $LOCAL)")
+	rootCmd.PersistentFlags().String("difftool-remote", "", "difftool mode: path to the remote (new) file (git's $REMOTE)")
+	rootCmd.PersistentFlags().String("difftool-path", "", "difftool mode: the real working-tree filename (git's $MERGED)")
 }
 
 // run is the cobra RunE handler. The FIRST statement must be applog.Init() so
@@ -54,31 +68,6 @@ func run(cmd *cobra.Command, args []string) error {
 	logFile, err := applog.Init()
 	if err == nil {
 		defer func() { _ = logFile.Close() }()
-	}
-
-	// Build the git diff argument slice: literal "diff" subcommand prepended to
-	// the parsed ref/path arguments (ExecRunner.Run does not add "diff" itself).
-	gitArgs := append([]string{"diff"}, git.ParseRefArgs(args, cmd.ArgsLenAtDash())...)
-
-	// Run git and obtain an io.Reader over the raw diff output.
-	reader, err := git.ExecRunner{}.Run(gitArgs)
-	if err != nil {
-		// Return unchanged — ExitCodeError sentinels are already typed correctly
-		// for main() to extract the exit code via errors.As.
-		return err
-	}
-
-	// Parse the unified diff into typed File structs.
-	files, err := diff.Parse(reader)
-	if err != nil {
-		return fmt.Errorf("parsing diff output: %w", err)
-	}
-
-	// Empty-state guard: if there are no changed files, inform the user and exit
-	// cleanly without starting the TUI (UI-SPEC Empty State).
-	if len(files) == 0 {
-		fmt.Fprintln(os.Stderr, "No changes found.")
-		return nil
 	}
 
 	// Load configuration (keybinding overrides, theme). configFlag is empty
@@ -95,22 +84,230 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Detect terminal background before bubbletea takes over the TTY.
-	// termenv queries OSC 11 with a short timeout and falls back to COLORFGBG.
-	// Must be called here, not inside tea.NewProgram, while stdout is still raw.
-	darkBg := termenv.NewOutput(os.Stdout).HasDarkBackground()
+	// Resolve the --theme flag and the three --difftool-* flags immediately
+	// after config.Load (04-03-PLAN.md Task 2).
+	themeFlag, err := cmd.Flags().GetString("theme")
+	if err != nil {
+		return err
+	}
+	flagTheme, err := config.ParseTheme(themeFlag)
+	if err != nil {
+		return err
+	}
+
+	difftoolLocal, err := cmd.Flags().GetString("difftool-local")
+	if err != nil {
+		return err
+	}
+	difftoolRemote, err := cmd.Flags().GetString("difftool-remote")
+	if err != nil {
+		return err
+	}
+	difftoolPath, err := cmd.Flags().GetString("difftool-path")
+	if err != nil {
+		return err
+	}
+
+	// Difftool mode is active when any of the three --difftool-* flags is
+	// non-empty; all three are then required (DIFFTOOL-01).
+	difftoolMode := difftoolLocal != "" || difftoolRemote != "" || difftoolPath != ""
+	if difftoolMode && (difftoolLocal == "" || difftoolRemote == "" || difftoolPath == "") {
+		return errors.New("--difftool-local, --difftool-remote and --difftool-path must all be provided")
+	}
+
+	// Resolve the terminal background before bubbletea takes over the TTY,
+	// through the D-05/D-06/D-07 precedence chain. The detector closure is
+	// constructed but only invoked when ResolveDarkBackground actually needs
+	// it — in difftool mode it is never called, which is what D-06 requires
+	// (the OSC 11 query is skipped, not merely time-boxed). Detection is now
+	// owned entirely by internal/config; main.go no longer imports termenv
+	// directly.
+	darkBg := config.ResolveDarkBackground(flagTheme, cfg.Theme, difftoolMode, func() bool {
+		return config.DetectDarkBackground(os.Stdout)
+	})
 	diff.SetDarkBackground(darkBg)
+
+	var files []*gitdiff.File
+	var dt tui.DifftoolInfo
+
+	if difftoolMode {
+		files, dt, err = loadDifftoolFiles(difftoolLocal, difftoolRemote, difftoolPath)
+		if err != nil {
+			return err
+		}
+		if files == nil {
+			// Empty-state guard already printed by loadDifftoolFiles.
+			return nil
+		}
+	} else {
+		// Build the git diff argument slice: literal "diff" subcommand
+		// prepended to the parsed ref/path arguments (ExecRunner.Run does not
+		// add "diff" itself).
+		gitArgs := append([]string{"diff"}, git.ParseRefArgs(args, cmd.ArgsLenAtDash())...)
+
+		// Run git and obtain an io.Reader over the raw diff output.
+		reader, runErr := git.ExecRunner{}.Run(gitArgs)
+		if runErr != nil {
+			// Return unchanged — ExitCodeError sentinels are already typed
+			// correctly for main() to extract the exit code via errors.As.
+			return runErr
+		}
+
+		// Parse the unified diff into typed File structs.
+		files, err = diff.Parse(reader)
+		if err != nil {
+			return fmt.Errorf("parsing diff output: %w", err)
+		}
+
+		// Empty-state guard: if there are no changed files, inform the user
+		// and exit cleanly without starting the TUI (UI-SPEC Empty State).
+		if len(files) == 0 {
+			fmt.Fprintln(os.Stderr, "No changes found.")
+			return nil
+		}
+	}
 
 	// Phase 3: launch bubbletea TUI (D-06).
 	// Data is pre-loaded; no async loading inside the model.
 	// In bubbletea v2, alternate screen is declared in the model's View()
 	// via view.AltScreen=true rather than as a program option (v2 upgrade guide).
-	m := tui.NewModel(files, darkBg, cfg.Keys)
+	m := tui.NewModel(files, darkBg, cfg.Keys, dt)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		return err
 	}
 	return nil
+}
+
+// loadDifftoolFiles builds the single-file gitdiff.File and tui.DifftoolInfo
+// for difftool mode (DIFFTOOL-01, DIFFTOOL-02). local and remote are git's
+// $LOCAL/$REMOTE temp files; path is git's $MERGED, the real working-tree
+// filename. A nil files return (with nil error) means the empty-state
+// message was already printed and the caller should exit 0 without starting
+// the TUI, mirroring the standalone empty-state guard.
+func loadDifftoolFiles(local, remote, path string) ([]*gitdiff.File, tui.DifftoolInfo, error) {
+	reader, err := difftoolDiff(local, remote)
+	if err != nil {
+		return nil, tui.DifftoolInfo{}, err
+	}
+
+	files, err := diff.Parse(reader)
+	if err != nil {
+		return nil, tui.DifftoolInfo{}, fmt.Errorf("parsing diff output: %w", err)
+	}
+
+	if len(files) == 0 {
+		fmt.Fprintln(os.Stderr, "No changes found.")
+		return nil, tui.DifftoolInfo{}, nil
+	}
+
+	// --difftool-path is git's $MERGED, the real working-tree filename;
+	// $LOCAL/$REMOTE are temp files with meaningless generated names.
+	// Without this rewrite, Chroma's filename-keyed lexer selection would
+	// fail to detect the language and the title bar would show a temp path
+	// (04-RESEARCH.md Pattern 4).
+	base := filepath.Base(path)
+	files[0].OldName = base
+	files[0].NewName = base
+
+	counter, total := difftoolCounters()
+
+	// Load the post-image lines for full-file rendering directly from the
+	// already-materialised --difftool-remote file — git show has no meaning
+	// for a temp path (04-RESEARCH.md Pattern 4). Opened read-only; never
+	// written to (T-04-03-03). A /dev/null remote (a deletion) legitimately
+	// yields an empty slice.
+	var newFileLines []string
+	if data, readErr := os.ReadFile(remote); readErr == nil {
+		newFileLines = splitDifftoolFileLines(data)
+	}
+
+	dt := tui.DifftoolInfo{
+		Enabled:      true,
+		Counter:      counter,
+		Total:        total,
+		Filename:     base,
+		NewFileLines: newFileLines,
+	}
+	return files, dt, nil
+}
+
+// difftoolDiff runs `git diff --no-index -- local remote` and returns its
+// stdout as an io.Reader over the resulting diff, interpreting exit codes
+// per git diff --no-index's own contract (NOT per internal/git.ExecRunner's,
+// which hardcodes a diff-runner-specific "not a git repository" branch that
+// does not apply here):
+//   - exit 0: the two files are identical — stdout is empty, and the caller's
+//     diff.Parse(...) correctly returns zero files.
+//   - exit 1: the files differ — stdout holds the diff to parse.
+//   - anything else: a real failure, surfaced with git's stderr.
+//
+// Deliberately does NOT apply internal/git.NormalizeCRLF: difftool mode
+// compares two already-materialised local files (git's own $LOCAL/$REMOTE
+// temp files) whose carriage returns are legitimate file content, not a
+// git-subprocess line-ending artifact — stripping them would corrupt the
+// diff of any CRLF-formatted source file (04-RESEARCH.md Pitfall F).
+func difftoolDiff(local, remote string) (io.Reader, error) {
+	// SECURITY: exec.Command uses argv form — each element is a separate
+	// argument. Shell metacharacters in local/remote (user-supplied paths
+	// crossing a subprocess boundary) are never interpreted (ASVS V5,
+	// T-04-03-02). The "--" separator precedes the two path arguments so a
+	// path beginning with a hyphen cannot be parsed as a git option.
+	cmd := exec.Command("git", "diff", "--no-index", "--", local, remote) //nolint:gosec
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err == nil {
+		// Exit 0: files are identical.
+		return &stdout, nil
+	}
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+		// Exit 1: files differ — stdout holds the diff to parse.
+		return &stdout, nil
+	}
+
+	// Any other outcome (unexpected exit code, or a non-ExitError failure
+	// such as git not being on PATH) is a real failure.
+	if msg := strings.TrimRight(stderr.String(), "\n"); msg != "" {
+		return nil, fmt.Errorf("git diff --no-index: %s", msg)
+	}
+	return nil, fmt.Errorf("git diff --no-index: %w", err)
+}
+
+// difftoolCounters reads GIT_DIFF_PATH_COUNTER and GIT_DIFF_PATH_TOTAL and
+// validates both as positive integers (T-04-03-01). An absent, empty,
+// non-numeric, or non-positive value on either variable is treated as
+// "counters unavailable" and both are set to 0, which selects the
+// counter-less title-bar template. Neither raw env string is ever rendered:
+// they arrive from outside the process and must reach the terminal only as
+// validated integers.
+func difftoolCounters() (counter, total int) {
+	c, cErr := strconv.Atoi(os.Getenv("GIT_DIFF_PATH_COUNTER"))
+	t, tErr := strconv.Atoi(os.Getenv("GIT_DIFF_PATH_TOTAL"))
+	if cErr != nil || tErr != nil || c <= 0 || t <= 0 {
+		return 0, 0
+	}
+	return c, t
+}
+
+// splitDifftoolFileLines splits raw file bytes into lines for full-file
+// difftool rendering, normalising CRLF and stripping the final newline so
+// each element holds one logical line. Mirrors internal/tui.splitFileBytes's
+// logic; replicated locally rather than exported across the package
+// boundary (04-03-PLAN.md Task 2).
+func splitDifftoolFileLines(data []byte) []string {
+	content := strings.ReplaceAll(string(data), "\r\n", "\n")
+	if len(content) > 0 && content[len(content)-1] == '\n' {
+		content = content[:len(content)-1]
+	}
+	if content == "" {
+		return nil
+	}
+	return strings.Split(content, "\n")
 }
 
 // main executes the root command and routes exit codes.

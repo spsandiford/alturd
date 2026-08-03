@@ -41,10 +41,26 @@ const (
 // resizePollMsg is emitted by the Windows resize tick (issue #1601).
 type resizePollMsg struct{}
 
+// DifftoolInfo carries the difftool-mode-only data cmd/alturd/main.go
+// resolves before constructing the model: whether difftool mode is active,
+// the git-supplied N-of-M counters, the real working-tree filename (git's
+// $MERGED), and the pre-loaded post-image lines for full-file rendering. A
+// struct rather than four positional NewModel parameters keeps the
+// constructor signature from growing a fifth, sixth and seventh argument,
+// and lets the zero value mean "standalone mode" (DIFFTOOL-01, DIFFTOOL-02).
+type DifftoolInfo struct {
+	Enabled      bool
+	Counter      int
+	Total        int
+	Filename     string
+	NewFileLines []string
+}
+
 type model struct {
-	files  []*gitdiff.File
-	darkBg bool
-	keys   config.Keymap
+	files    []*gitdiff.File
+	darkBg   bool
+	keys     config.Keymap
+	difftool DifftoolInfo
 
 	ready       bool
 	termWidth   int
@@ -78,10 +94,12 @@ type model struct {
 // marker colours in the tree pane. keys resolves every normal-mode keypress to an
 // action (config.Keymap.Lookup); a nil keys defaults to config.DefaultKeymap() so
 // existing callers that pass no override still get Phase 3's default bindings.
+// dt carries difftool-mode data; the zero value (DifftoolInfo{}) means standalone
+// mode (DIFFTOOL-01, DIFFTOOL-02).
 // Called from cmd/alturd/main.go after git+parse and background detection complete (D-06).
 //
 //nolint:revive // model is intentionally unexported: callers only need the tea.Model interface.
-func NewModel(files []*gitdiff.File, darkBg bool, keys config.Keymap) model {
+func NewModel(files []*gitdiff.File, darkBg bool, keys config.Keymap, dt DifftoolInfo) model {
 	if keys == nil {
 		keys = config.DefaultKeymap()
 	}
@@ -105,6 +123,7 @@ func NewModel(files []*gitdiff.File, darkBg bool, keys config.Keymap) model {
 		files:       files,
 		darkBg:      darkBg,
 		keys:        keys,
+		difftool:    dt,
 		focusedPane: diffFocused,
 		treeWidth:   treeWidthUnfocused,
 		searchInput: ti,
