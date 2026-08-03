@@ -29,7 +29,7 @@ type rawConfig struct {
 
 // Config is alturd's fully-resolved configuration.
 type Config struct {
-	Theme string
+	Theme Theme
 	Keys  Keymap
 }
 
@@ -37,7 +37,7 @@ type Config struct {
 // ten Phase 3 default keybindings.
 func DefaultConfig() *Config {
 	return &Config{
-		Theme: "auto",
+		Theme: ThemeAuto,
 		Keys:  DefaultKeymap(),
 	}
 }
@@ -88,9 +88,11 @@ func Load(explicitPath string) (*Config, error) {
 	}
 
 	cfg := DefaultConfig()
-	if raw.Theme != "" {
-		cfg.Theme = raw.Theme
+	theme, err := ParseTheme(raw.Theme)
+	if err != nil {
+		return nil, err
 	}
+	cfg.Theme = theme
 	if err := cfg.Keys.Merge(raw.Keybindings); err != nil {
 		return nil, err
 	}
