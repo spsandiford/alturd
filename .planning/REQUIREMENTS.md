@@ -54,9 +54,9 @@
 
 ### Distribution
 
-- [ ] **DIST-01**: Every push to GitHub runs `go test ./...` on Linux, macOS, and Windows via GitHub Actions CI
-- [ ] **DIST-02**: Every git tag push triggers GitHub Actions to build and publish pre-built binaries for Linux (amd64/arm64), macOS (amd64/arm64), and Windows (amd64) as GitHub Release assets
-- [ ] **DIST-03**: All released binaries are fully self-contained (`CGO_ENABLED=0`) with no runtime dependencies
+- [x] **DIST-01**: Every push to GitHub runs `go test ./...` on Linux, macOS, and Windows via GitHub Actions CI
+- [x] **DIST-02**: Every git tag push triggers GitHub Actions to build and publish pre-built binaries for Linux (amd64/arm64), macOS (amd64/arm64), and Windows (amd64) as GitHub Release assets
+- [x] **DIST-03**: All released binaries are fully self-contained (`CGO_ENABLED=0`) with no runtime dependencies
 
 ### Logging
 
@@ -117,9 +117,9 @@
 | DIFFTOOL-01 | Phase 4 | Pending |
 | DIFFTOOL-02 | Phase 4 | Pending |
 | DIFFTOOL-03 | Phase 4 | Pending |
-| DIST-01 | Phase 4 | Pending |
-| DIST-02 | Phase 4 | Pending |
-| DIST-03 | Phase 4 | Pending |
+| DIST-01 | Phase 4 | Complete |
+| DIST-02 | Phase 4 | Complete |
+| DIST-03 | Phase 4 | Complete |
 
 **Coverage:**
 

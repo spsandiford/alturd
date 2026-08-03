@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: config-theming-difftool-distribution
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-08-03T20:56:06.888Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-08-03T21:06:29.779Z"
 last_activity: 2026-08-03
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 15
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-06-27)
 ## Current Position
 
 Phase: 04 (config-theming-difftool-distribution) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-08-03 — Phase 04 execution started
 
-Progress: [████████████████████] 3/3 plans ([████████░░] 80%)
+Progress: [████████████████████] 3/3 plans ([█████████░] 87%)
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [████████████████████] 3/3 pla
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 04 P01 | 35min | 3 tasks | 9 files |
+| Phase 04 P02 | ~20min | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Recent decisions affecting current work:
 - Phase 2: TestMain subprocess pattern for integration tests (t.TempDir lifecycle prevents per-test binary approach)
 - [Phase ?]: D-04 locked: flat [keybindings] TOML table, snake_case action names (next_hunk, prev_hunk, next_file, prev_file, toggle_focus, toggle_render_mode, open_search, toggle_all_files, quit, abort)
 - [Phase ?]: Keymap.Merge validates strictly two-directionally (D-02): unknown action -> unrecognized key -> merge -> duplicate scan over the merged map (merge-then-validate), producing deterministic canonical-order error messages
+- [Phase ?]: Phase 4 Plan 2: golangci-lint v2.7.2 and goreleaser v2.17.1 installed locally to validate CI/release config with real tooling (goreleaser check, snapshot build, ldd) rather than structural checks alone
+- [Phase ?]: Phase 4 Plan 2: fixed all 20 pre-existing golangci-lint findings in Phase 1-3/04-01 code (errcheck, revive) so the new CI lint gate lands green on first run
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-03T20:56:06.877Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-08-03T21:06:29.767Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
