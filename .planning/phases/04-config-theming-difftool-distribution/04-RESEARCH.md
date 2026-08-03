@@ -583,7 +583,7 @@ jobs:
 
 **If this table is empty:** N/A — see entries above. All three assumptions are low-to-medium risk and self-verifying (CI will surface a version mismatch immediately rather than silently misbehaving).
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `install-difftool` also offer `difftool.<name>.path`?**
    - What we know: The 4-key set (D-08, confirmed) covers the minimum viable setup assuming `alturd` is on `PATH`.
