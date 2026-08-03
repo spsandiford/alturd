@@ -205,3 +205,7 @@ None — no external service configuration required. `alturd install-difftool` i
 ---
 *Phase: 04-config-theming-difftool-distribution*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+All created/modified files verified present on disk (`cmd/alturd/difftool.go`, `cmd/alturd/difftool_internal_test.go`, `cmd/alturd/installdifftool_test.go`, `internal/git/errors.go`, and this SUMMARY.md); all five commits (`bb5581d`, `15e0cab`, `581794e`, `ab1d93f`, `926f92a`) verified present in `git log`.
