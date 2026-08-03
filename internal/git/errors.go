@@ -33,3 +33,13 @@ var ErrNotGitRepo = &ExitCodeError{
 	Code: 1,
 	Msg:  "not a git repository (run alturd inside a git working tree)",
 }
+
+// ErrLocalScopeOutsideRepo is returned by cmd/alturd's gitConfigRun/gitConfigGet
+// when `install-difftool --scope local` is run outside a git repository.
+// `git config --local` writes to .git/config, which does not exist outside a
+// working tree; the message matches 04-UI-SPEC.md's install-difftool CLI
+// Output table verbatim (04-RESEARCH.md Pitfall D).
+var ErrLocalScopeOutsideRepo = &ExitCodeError{
+	Code: 1,
+	Msg:  "--scope local requires running inside a git repository.",
+}
