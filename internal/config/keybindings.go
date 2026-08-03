@@ -1,6 +1,11 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+	"sort"
+	"unicode"
+)
 
 // Action identifies one of alturd's ten rebindable global keyboard actions.
 // The zero value ActionNone means "no action bound to this key" and is
@@ -52,6 +57,49 @@ func isKnownAction(name string) bool {
 	return false
 }
 
+// namedKeys is the explicit allowlist of multi-rune key names that
+// tea.KeyPressMsg.String() produces for non-printable keys.
+var namedKeys = map[string]bool{
+	"tab":       true,
+	"esc":       true,
+	"enter":     true,
+	"space":     true,
+	"backspace": true,
+	"delete":    true,
+	"up":        true,
+	"down":      true,
+	"left":      true,
+	"right":     true,
+	"home":      true,
+	"end":       true,
+	"pgup":      true,
+	"pgdown":    true,
+}
+
+// modifierKeyPattern matches the modifier+key form tea.KeyPressMsg.String()
+// produces for a modified key, e.g. "ctrl+a".
+var modifierKeyPattern = regexp.MustCompile(`^(ctrl|alt|shift)\+[a-z0-9]$`)
+
+// validKeyString reports whether s is a form tea.KeyPressMsg.String() can
+// actually produce: exactly one non-space rune, a member of namedKeys, or the
+// ctrl/alt/shift modifier form. Anything else cannot be matched at dispatch
+// time, so D-02 rejects it at config load time instead of letting it become
+// dead, unreachable configuration (config: unrecognized key "<key>" for
+// action "<action>").
+func validKeyString(s string) bool {
+	if s == "" {
+		return false
+	}
+	runes := []rune(s)
+	if len(runes) == 1 && !unicode.IsSpace(runes[0]) {
+		return true
+	}
+	if namedKeys[s] {
+		return true
+	}
+	return modifierKeyPattern.MatchString(s)
+}
+
 // Keymap maps an Action to the key string (as produced by
 // tea.KeyPressMsg.String()) that dispatches it.
 type Keymap map[Action]string
@@ -98,19 +146,54 @@ func (k Keymap) Lookup(key string) Action {
 // the receiver's underlying map once every override has been validated, so a
 // rejected config never leaves k partially mutated.
 //
-// For this task (Task 2 of 04-01-PLAN.md), Merge only rejects an override
-// action name that is not one of the ten known actions; unrecognized key
-// strings and duplicate-key detection are added by Task 3 (D-02).
+// Validation is strict in both directions per D-02 (no silent last-one-wins):
+//  1. every override action name must be one of the ten known actions;
+//  2. every override key value must be a form validKeyString accepts;
+//  3. the *merged* map (not the override map alone) must not bind two
+//     actions to the same key — this also catches a rebind that collides
+//     with a different, untouched action's default key, which validating
+//     the override map alone would miss.
+//
+// Override names are inspected in sorted order and the merged map is scanned
+// in canonicalActions order, so the reported error is identical on every run
+// regardless of Go's randomized map iteration order.
 func (k Keymap) Merge(overrides map[string]string) error {
+	names := make([]string, 0, len(overrides))
+	for name := range overrides {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		if !isKnownAction(name) {
+			return fmt.Errorf("config: unknown keybinding action %q", name)
+		}
+	}
+	for _, name := range names {
+		key := overrides[name]
+		if !validKeyString(key) {
+			return fmt.Errorf("config: unrecognized key %q for action %q", key, name)
+		}
+	}
+
 	merged := make(Keymap, len(k))
 	for a, key := range k {
 		merged[a] = key
 	}
-	for name, key := range overrides {
-		if !isKnownAction(name) {
-			return fmt.Errorf("config: unknown keybinding action %q", name)
+	for _, name := range names {
+		merged[Action(name)] = overrides[name]
+	}
+
+	seen := make(map[string]Action, len(merged))
+	for _, a := range canonicalActions {
+		key, ok := merged[a]
+		if !ok {
+			continue
 		}
-		merged[Action(name)] = key
+		if first, dup := seen[key]; dup {
+			return fmt.Errorf("config: key %q is bound to both %q and %q", key, first, a)
+		}
+		seen[key] = a
 	}
 
 	for a := range k {

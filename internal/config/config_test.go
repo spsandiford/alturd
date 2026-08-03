@@ -94,3 +94,46 @@ func TestLoad_NoConfigFileUsesDefaults(t *testing.T) {
 		t.Errorf("Load(\"\").Keys.Lookup(%q) = %v, want %v", "q", cfg.Keys.Lookup("q"), config.ActionQuit)
 	}
 }
+
+// TestLoad_UnknownField verifies that a top-level TOML key not recognized by
+// rawConfig aborts loading with the exact single-line 04-UI-SPEC.md template,
+// substituting the real field name and path (D-02).
+func TestLoad_UnknownField(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.toml")
+	if err := os.WriteFile(path, []byte("themez = \"dark\"\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	_, err := config.Load(path)
+	wantErr := "config: unknown field \"themez\" in " + path
+	if err == nil {
+		t.Fatalf("Load(%q) = nil error, want %q", path, wantErr)
+	}
+	if got := err.Error(); got != wantErr {
+		t.Errorf("Load(%q) error = %q, want %q", path, got, wantErr)
+	}
+}
+
+// TestLoad_NoSideEffectsOnFirstRun verifies D-03: a first run with a clean
+// XDG_CONFIG_HOME and no --config flag leaves that directory byte-for-byte
+// unchanged — no directory and no file is created by the read-only discovery
+// path. This is the only reliable regression guard against accidentally
+// swapping xdg.SearchConfigFile for one of the directory-creating helpers in
+// the same package.
+func TestLoad_NoSideEffectsOnFirstRun(t *testing.T) {
+	setXDGConfigHome(t, t.TempDir())
+	dir := xdg.ConfigHome
+
+	if _, err := config.Load(""); err != nil {
+		t.Fatalf("Load(\"\") = _, %v, want nil error", err)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("ReadDir(%q): %v", dir, err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("ReadDir(%q) = %d entries, want 0 (Load must not create files/dirs, D-03)", dir, len(entries))
+	}
+}
