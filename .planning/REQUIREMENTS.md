@@ -43,8 +43,8 @@
 ### Theming & Config
 
 - [ ] **THEME-01**: User sees light/dark/auto theming — terminal background detected via OSC 11 with 50ms timeout fallback to dark
-- [ ] **CONFIG-01**: User can place a TOML config file at `$XDG_CONFIG_HOME/alturd/config.toml` (or pass `--config <path>`) to override defaults
-- [ ] **CONFIG-02**: User can override any default keybinding via the config file
+- [x] **CONFIG-01**: User can place a TOML config file at `$XDG_CONFIG_HOME/alturd/config.toml` (or pass `--config <path>`) to override defaults
+- [x] **CONFIG-02**: User can override any default keybinding via the config file
 
 ### Difftool Integration
 
@@ -112,8 +112,8 @@
 | TREE-03 | Phase 3 | Complete |
 | SEARCH-01 | Phase 3 | Complete |
 | THEME-01 | Phase 4 | Pending |
-| CONFIG-01 | Phase 4 | Pending |
-| CONFIG-02 | Phase 4 | Pending |
+| CONFIG-01 | Phase 4 | Complete |
+| CONFIG-02 | Phase 4 | Complete |
 | DIFFTOOL-01 | Phase 4 | Pending |
 | DIFFTOOL-02 | Phase 4 | Pending |
 | DIFFTOOL-03 | Phase 4 | Pending |

@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 4
-current_phase_name: Config + Theming + Difftool + Distribution
+current_phase: 04
+current_phase_name: config-theming-difftool-distribution
 status: executing
-stopped_at: Phase 04 UI-SPEC approved
-last_updated: "2026-08-03T20:16:58.429Z"
-last_activity: 2026-07-24
-last_activity_desc: Phase 03 complete, transitioned to Phase 4
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-08-03T20:56:06.888Z"
+last_activity: 2026-08-03
+last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 15
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-27)
 
 **Core value:** A developer can download a single binary, run `alturd` in any git repository, and navigate every changed file and every individual diff hunk with fast keyboard-driven controls — no runtime dependencies required.
-**Current focus:** Phase 03 — tui-application
+**Current focus:** Phase 04 — config-theming-difftool-distribution
 
 ## Current Position
 
-Phase: 4 — Config + Theming + Difftool + Distribution
-Plan: Not started
+Phase: 04 (config-theming-difftool-distribution) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-24 — Phase 03 complete, transitioned to Phase 4
+Last activity: 2026-08-03 — Phase 04 execution started
 
-Progress: [████████████████████] 3/3 plans (100%)
+Progress: [████████████████████] 3/3 plans ([████████░░] 80%)
 
 ## Performance Metrics
 
@@ -60,6 +60,11 @@ Progress: [████████████████████] 3/3 pla
 | Phase 02-git-layer-cli P02 | 4m | 2 tasks | 3 files |
 | Phase 02 P03 | 3m | 2 tasks | 4 files |
 | Phase 03 P04 | 187 | 2 tasks | 2 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 04 P01 | 35min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -82,6 +87,8 @@ Recent decisions affecting current work:
 - Phase 2: var version declared as var not const so goreleaser -ldflags can override in Phase 4 (D-03)
 - Phase 2: git diff exits 129 (not 128) on some git versions outside a repo — stderr message is the only reliable discriminator
 - Phase 2: TestMain subprocess pattern for integration tests (t.TempDir lifecycle prevents per-test binary approach)
+- [Phase ?]: D-04 locked: flat [keybindings] TOML table, snake_case action names (next_hunk, prev_hunk, next_file, prev_file, toggle_focus, toggle_render_mode, open_search, toggle_all_files, quit, abort)
+- [Phase ?]: Keymap.Merge validates strictly two-directionally (D-02): unknown action -> unrecognized key -> merge -> duplicate scan over the merged map (merge-then-validate), producing deterministic canonical-order error messages
 
 ### Pending Todos
 
@@ -94,6 +101,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-03T19:43:57.515Z
-Stopped at: Phase 04 UI-SPEC approved
-Resume file: /src/alturd/.planning/phases/04-config-theming-difftool-distribution/04-UI-SPEC.md
+Last session: 2026-08-03T20:56:06.877Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
