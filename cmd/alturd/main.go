@@ -53,7 +53,7 @@ func run(cmd *cobra.Command, args []string) error {
 	// FIRST: initialise log. Non-fatal — continue without logging if init fails.
 	logFile, err := applog.Init()
 	if err == nil {
-		defer logFile.Close()
+		defer func() { _ = logFile.Close() }()
 	}
 
 	// Build the git diff argument slice: literal "diff" subcommand prepended to

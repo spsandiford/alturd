@@ -18,7 +18,7 @@ func parseFirst(t *testing.T, fixture string) *gitdiff.File {
 	if err != nil {
 		t.Fatalf("parseFirst(%q): %v", fixture, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	files, err := diff.Parse(f)
 	if err != nil {
 		t.Fatalf("parseFirst(%q): Parse: %v", fixture, err)

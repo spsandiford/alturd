@@ -69,12 +69,12 @@ func truncateLog(path string) error {
 	}
 	tmpName := tmp.Name()
 	if _, werr := tmp.Write(data); werr != nil {
-		tmp.Close()
-		os.Remove(tmpName)
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
 		return fmt.Errorf("writing truncated log: %w", werr)
 	}
 	if cerr := tmp.Close(); cerr != nil {
-		os.Remove(tmpName)
+		_ = os.Remove(tmpName)
 		return fmt.Errorf("closing temp log: %w", cerr)
 	}
 	return os.Rename(tmpName, path)

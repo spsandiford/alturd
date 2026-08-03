@@ -33,7 +33,7 @@ func TestInit(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Init() error = %v", err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		gotPath := f.Name()
 		wantPath := filepath.Join(tmpDir, "alturd", "alturd.log")
@@ -72,7 +72,7 @@ func TestInit(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Init() error = %v", err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		diskData, err := os.ReadFile(logPath)
 		if err != nil {
@@ -111,7 +111,7 @@ func TestInit(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Init() error = %v", err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		diskData, err := os.ReadFile(logPath)
 		if err != nil {

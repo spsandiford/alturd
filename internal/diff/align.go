@@ -163,6 +163,7 @@ func alignSubmodule(file *gitdiff.File) []RowPair {
 // the original file is available. The mode parameter is wired here for forward
 // compatibility.
 func alignText(file *gitdiff.File, mode RenderMode) []RowPair {
+	_ = mode // reserved for forward compatibility; see doc comment above
 	var result []RowPair
 	for _, frag := range file.TextFragments {
 		lines := frag.Lines
@@ -436,6 +437,7 @@ func HunkStartRowsFull(file *gitdiff.File) []int {
 // countFragmentRows returns the number of Align output rows produced by frag.
 // The pairing logic mirrors alignText: delete+add runs produce max(dels,adds) rows.
 func countFragmentRows(frag *gitdiff.TextFragment, mode RenderMode) int {
+	_ = mode // reserved for forward compatibility; mirrors alignText
 	count := 0
 	lines := frag.Lines
 	i := 0

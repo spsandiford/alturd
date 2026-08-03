@@ -79,6 +79,8 @@ type model struct {
 // action (config.Keymap.Lookup); a nil keys defaults to config.DefaultKeymap() so
 // existing callers that pass no override still get Phase 3's default bindings.
 // Called from cmd/alturd/main.go after git+parse and background detection complete (D-06).
+//
+//nolint:revive // model is intentionally unexported: callers only need the tea.Model interface.
 func NewModel(files []*gitdiff.File, darkBg bool, keys config.Keymap) model {
 	if keys == nil {
 		keys = config.DefaultKeymap()
@@ -688,7 +690,9 @@ func (m *model) treeIdxMove(delta int) {
 		}
 		if idx >= len(m.treeFlat) {
 			// No file forward — walk backward
-			for idx = m.treeIdx; idx >= 0 && m.treeFlat[idx].node.IsDir; idx-- {
+			idx = m.treeIdx
+			for idx >= 0 && m.treeFlat[idx].node.IsDir {
+				idx--
 			}
 		}
 	} else {
@@ -697,7 +701,9 @@ func (m *model) treeIdxMove(delta int) {
 		}
 		if idx < 0 {
 			// No file backward — walk forward
-			for idx = m.treeIdx; idx < len(m.treeFlat) && m.treeFlat[idx].node.IsDir; idx++ {
+			idx = m.treeIdx
+			for idx < len(m.treeFlat) && m.treeFlat[idx].node.IsDir {
+				idx++
 			}
 		}
 	}
@@ -756,13 +762,6 @@ func (m *model) scrollToFirstHunk() {
 	if m.renderMode == diff.FullFile && len(m.hunkRows) > 0 {
 		m.diffVP.SetYOffset(max(0, m.hunkRows[0]-m.diffVP.Height()/2))
 	}
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // fetchFileLines reads the complete line content of a file for full-file rendering.

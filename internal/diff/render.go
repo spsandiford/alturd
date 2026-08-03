@@ -110,21 +110,6 @@ func effectiveName(f *gitdiff.File) string {
 	return f.OldName
 }
 
-// renderPair composes one side-by-side ANSI row from a RowPair. For Modified
-// pairs it delegates to applyIntraLine; all others use renderSide directly.
-// No column width truncation is applied; use renderPairWidth when a column
-// width limit is required.
-func renderPair(p RowPair) string {
-	var left, right string
-	if p.Left.Kind == LineModifiedOld && p.Right.Kind == LineModifiedNew {
-		left, right = applyIntraLine(p)
-	} else {
-		left = renderSide(p.Left)
-		right = renderSide(p.Right)
-	}
-	return joinColumns(left, right)
-}
-
 // visibleLen returns the number of visible runes in s, skipping ANSI CSI
 // escape sequences (ESC '[' <params> <terminator 0x40–0x7E>). This mirrors
 // the escape-detection logic in truncateANSI but counts instead of truncating.
@@ -323,11 +308,11 @@ func countTokens(s string) int {
 // computeIntraLineWithTimeout runs dmp.DiffMain(old, new, false) on a goroutine
 // and returns the result, or (nil, true) when DiffMain takes longer than 100ms.
 // checklines is always false (D-06: character-level diff, not word-level).
-func computeIntraLineWithTimeout(old, new string) ([]diffmatchpatch.Diff, bool) {
+func computeIntraLineWithTimeout(oldText, newText string) ([]diffmatchpatch.Diff, bool) {
 	type result struct{ diffs []diffmatchpatch.Diff }
 	done := make(chan result, 1)
 	go func() {
-		done <- result{diffs: dmp.DiffMain(old, new, false)}
+		done <- result{diffs: dmp.DiffMain(oldText, newText, false)}
 	}()
 	select {
 	case r := <-done:

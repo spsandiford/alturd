@@ -186,13 +186,3 @@ func TestRender(t *testing.T) {
 		}
 	})
 }
-
-// min returns the smaller of a and b.
-// Provided as a local helper since Go 1.21+ builtin min is available,
-// but we include it for explicitness in test output truncation.
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

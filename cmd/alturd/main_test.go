@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	}
 
 	code := m.Run()
-	os.RemoveAll(dir) // explicit cleanup before exit — defer is bypassed by os.Exit
+	_ = os.RemoveAll(dir) // explicit cleanup before exit — defer is bypassed by os.Exit
 	os.Exit(code)
 }
 
