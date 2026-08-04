@@ -228,7 +228,19 @@ func (m model) View() tea.View {
 	if m.searchMode {
 		contentH--
 	}
-	sep := strings.Repeat("│\n", contentH-1) + "│"
+	// CR-01 (code review): m.termHeight arrives unvalidated from
+	// tea.WindowSizeMsg and the Windows resizePollMsg tick, so a one-row
+	// terminal (or two rows with search open, or any transient degenerate
+	// resize report) can make contentH-1 negative — strings.Repeat panics
+	// on a negative count, taking down the whole render path with no
+	// recover anywhere above it. Reproduced via handleResize(80, 1) then
+	// View(). Clamp at zero so the separator degenerates to a single "│"
+	// instead of crashing.
+	sepLines := contentH - 1
+	if sepLines < 0 {
+		sepLines = 0
+	}
+	sep := strings.Repeat("│\n", sepLines) + "│"
 
 	body := lipgloss.JoinHorizontal(
 		lipgloss.Top,
@@ -283,6 +295,13 @@ func (m *model) handleResize(w, h int) {
 	contentH := h - 1
 	if m.searchMode {
 		contentH--
+	}
+	// CR-01 (code review): clamp the same way View()'s independent contentH
+	// computation is clamped — an unvalidated terminal height reaching
+	// treeVP.SetHeight/diffVP.SetHeight is the width twin of the panic this
+	// clamp prevents in View(). Height only; diffW (WR-02) stays untouched.
+	if contentH < 0 {
+		contentH = 0
 	}
 
 	// Difftool mode (DIFFTOOL-01): the diff pane takes the full width — no
