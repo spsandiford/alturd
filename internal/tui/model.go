@@ -572,7 +572,15 @@ func (m model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case config.ActionQuit:
 		return m, tea.Quit
 	case config.ActionAbort:
-		os.Exit(1)
+		// CR-02 (code review): terminating the process directly here (the
+		// former os.Exit(1)) bypasses bubbletea's terminal restore — the
+		// user is left with raw mode / the alternate screen still active
+		// until reset/stty sane. Route through the normal tea.Quit path
+		// instead so tea.Program.Run unwinds and restores the terminal;
+		// cmd/alturd/main.go inspects the final model via tui.WasAborted
+		// and applies exit status 1 only after Run() returns.
+		m.aborted = true
+		return m, tea.Quit
 	case config.ActionToggleFocus:
 		m.toggleFocus()
 		m.handleResize(m.termWidth, m.termHeight)

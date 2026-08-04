@@ -173,11 +173,27 @@ func run(cmd *cobra.Command, args []string) error {
 	// via view.AltScreen=true rather than as a program option (v2 upgrade guide).
 	m := tui.NewModel(files, darkBg, cfg.Keys, dt)
 	p := tea.NewProgram(m)
-	if _, err := p.Run(); err != nil {
+	finalModel, err := p.Run()
+	if err != nil {
 		return err
+	}
+	// CR-02 (code review): tea.Program.Run has already restored the
+	// terminal (raw mode, alternate screen) by the time it returns, since
+	// internal/tui now routes the abort key through tea.Quit instead of
+	// calling os.Exit directly. Returning errAborted through run() (rather
+	// than exiting here) lets the deferred logFile.Close() above still run.
+	if tui.WasAborted(finalModel) {
+		return errAborted
 	}
 	return nil
 }
+
+// errAborted is the sentinel run() returns when the user pressed the abort
+// key. Its Msg is deliberately empty: the abort path has always printed
+// nothing to stderr, and difftool.trustExitCode = true (D-08) reads only the
+// process exit status, never any output. reportError's empty-message
+// suppression is what keeps this silent (code review CR-02).
+var errAborted = &git.ExitCodeError{Code: 1}
 
 // loadDifftoolFiles builds the single-file gitdiff.File and tui.DifftoolInfo
 // for difftool mode (DIFFTOOL-01, DIFFTOOL-02). local and remote are git's
@@ -310,18 +326,30 @@ func splitDifftoolFileLines(data []byte) []string {
 	return strings.Split(content, "\n")
 }
 
-// main executes the root command and routes exit codes.
-// All error output is a single line to stderr (D-11, T-02-07):
-//   - *git.ExitCodeError → print Msg, exit with Code (distinguishes no-repo from no-git)
-//   - other error       → print err.Error(), exit 1
+// reportError routes an error to its exit code, writing at most one line to
+// w (D-11, T-02-07):
+//   - *git.ExitCodeError with a non-empty Msg → print Msg, return Code
+//     (distinguishes no-repo from no-git; also covers errAborted's Code: 1)
+//   - *git.ExitCodeError with an empty Msg    → print nothing, return Code
+//     (the abort path, CR-02: exit status 1 is the entire signal, exactly
+//     as the pre-fix os.Exit(1) path behaved — a stray blank line would be
+//     new, unwanted output)
+//   - any other error                         → print err.Error(), return 1
+func reportError(err error, w io.Writer) int {
+	var exitErr *git.ExitCodeError
+	if errors.As(err, &exitErr) {
+		if exitErr.Msg != "" {
+			fmt.Fprintln(w, exitErr.Msg)
+		}
+		return exitErr.Code
+	}
+	fmt.Fprintln(w, err.Error())
+	return 1
+}
+
+// main executes the root command and routes exit codes via reportError.
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		var exitErr *git.ExitCodeError
-		if errors.As(err, &exitErr) {
-			fmt.Fprintln(os.Stderr, exitErr.Msg)
-			os.Exit(exitErr.Code)
-		}
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
+		os.Exit(reportError(err, os.Stderr))
 	}
 }
