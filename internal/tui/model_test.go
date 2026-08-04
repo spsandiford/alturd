@@ -424,6 +424,47 @@ func TestDifftoolTitleBar(t *testing.T) {
 	}
 }
 
+// TestViewNoPanicOnShortTerminal reproduces code review CR-01: View()'s
+// separator-column repeat count goes negative (and strings.Repeat panics)
+// whenever the effective content height is small — a 1-row terminal with
+// search closed, or a 2-row terminal with search open. Reaching the end of
+// each subtest is the assertion; an unclamped repeat count aborts the
+// subtest (and the whole package test binary) with a panic before any
+// t.Error can run.
+func TestViewNoPanicOnShortTerminal(t *testing.T) {
+	tests := []struct {
+		height     int
+		searchMode bool
+	}{
+		{height: 0, searchMode: false},
+		{height: 1, searchMode: false},
+		{height: 2, searchMode: false},
+		{height: 3, searchMode: false},
+		{height: 24, searchMode: false},
+		{height: 1, searchMode: true},
+		{height: 2, searchMode: true},
+		{height: 3, searchMode: true},
+		{height: 24, searchMode: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("height_%d_search_%v", tc.height, tc.searchMode), func(t *testing.T) {
+			m := NewModel(nil, false, config.DefaultKeymap(), DifftoolInfo{})
+			m.searchMode = tc.searchMode
+			m.handleResize(80, tc.height)
+			v := m.View()
+
+			if tc.height == 24 && !tc.searchMode {
+				// Non-regression (CR-01): above the degenerate boundary the
+				// separator column is unchanged — one "│" per content row.
+				if got := strings.Count(v.Content, "│"); got != 23 {
+					t.Errorf("View().Content has %d '│' chars at 80x24 search-closed, want 23 (separator unchanged above the degenerate boundary)", got)
+				}
+			}
+		})
+	}
+}
+
 // TestDifftoolTitleBarTruncatesWithEllipsis reproduces the 04-VERIFICATION.md
 // gap (DIFFTOOL-02): an overflowing filename must truncate to exactly
 // m.termWidth display cells and end in the horizontal-ellipsis character
