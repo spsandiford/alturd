@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -418,6 +419,39 @@ func TestDifftoolTitleBar(t *testing.T) {
 			got := strings.TrimRight(m.difftoolTitleBar(), " ")
 			if got != tc.want {
 				t.Errorf("difftoolTitleBar() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDifftoolTitleBarTruncatesWithEllipsis reproduces the 04-VERIFICATION.md
+// gap (DIFFTOOL-02): an overflowing filename must truncate to exactly
+// m.termWidth display cells and end in the horizontal-ellipsis character
+// U+2026, never wrap to a second row, and never panic at degenerate widths.
+// A title that already fits (handled by TestDifftoolTitleBar above) must stay
+// byte-identical — this test only exercises the overflow path.
+func TestDifftoolTitleBarTruncatesWithEllipsis(t *testing.T) {
+	longName := strings.Repeat("x", 500) + ".go"
+	dt := DifftoolInfo{Enabled: true, Counter: 3, Total: 7, Filename: longName}
+
+	widths := []int{40, 20, 5, 1, 0}
+	for _, width := range widths {
+		t.Run(fmt.Sprintf("width_%d", width), func(t *testing.T) {
+			m := NewModel(nil, false, config.DefaultKeymap(), dt)
+			m.handleResize(width, 50)
+
+			got := m.difftoolTitleBar()
+			if w := lipgloss.Width(got); w != width {
+				t.Errorf("difftoolTitleBar() display width = %d, want %d", w, width)
+			}
+			if strings.Contains(got, "\n") {
+				t.Errorf("difftoolTitleBar() contains a newline — must stay a single row (04-03 truth #13): %q", got)
+			}
+			if width >= 2 {
+				trimmed := strings.TrimRight(got, " ")
+				if !strings.HasSuffix(trimmed, "…") {
+					t.Errorf("difftoolTitleBar() at width %d = %q, want suffix %q (DIFFTOOL-02 ellipsis)", width, trimmed, "…")
+				}
 			}
 		})
 	}
