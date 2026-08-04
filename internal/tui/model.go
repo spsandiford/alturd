@@ -18,6 +18,7 @@ import (
 	"charm.land/bubbles/v2/viewport"
 	"charm.land/lipgloss/v2"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/charmbracelet/x/ansi"
 	"golang.org/x/term"
 
 	"github.com/alturd/alturd/internal/config"
@@ -249,9 +250,18 @@ func (m model) View() tea.View {
 // than zero, then " — {Filename}", then " [SEARCH]" only when m.searchMode.
 // Counter and Total render with %d exactly as received — including when
 // equal or adjacent — never clamped, wrapped or special-cased. A long
-// filename is truncated with an ellipsis via lipgloss MaxWidth rather than
-// wrapping onto a second row, then padded to m.termWidth the same way the
-// standalone status bar is.
+// filename is truncated to m.termWidth via ansi.Truncate with an explicit
+// U+2026 ("…") tail rather than wrapping onto a second row, then padded to
+// m.termWidth the same way the standalone status bar is.
+//
+// lipgloss.Style.MaxWidth is NOT used here: it truncates via
+// ansi.Truncate(line, maxWidth, "") with a hardcoded empty tail internally
+// (charm.land/lipgloss/v2@v2.0.5/style.go:510) and has no user-facing tail
+// parameter, so it cannot append an ellipsis. Calling ansi.Truncate directly
+// gives the same ANSI-aware, wide-character-aware truncation with an
+// explicit tail, satisfying 04-UI-SPEC.md's Copywriting Contract ("ellipsis
+// appended") and closing the gap 04-VERIFICATION.md recorded against
+// DIFFTOOL-02 (04-05-PLAN.md Task 1).
 func (m model) difftoolTitleBar() string {
 	title := "alturd (difftool)"
 	if m.difftool.Counter > 0 && m.difftool.Total > 0 {
@@ -261,7 +271,7 @@ func (m model) difftoolTitleBar() string {
 	if m.searchMode {
 		title += " [SEARCH]"
 	}
-	title = lipgloss.NewStyle().MaxWidth(m.termWidth).Render(title)
+	title = ansi.Truncate(title, m.termWidth, "…")
 	return lipgloss.NewStyle().Width(m.termWidth).Render(title)
 }
 
