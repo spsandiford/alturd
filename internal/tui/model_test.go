@@ -424,6 +424,64 @@ func TestDifftoolTitleBar(t *testing.T) {
 	}
 }
 
+// TestAbortKeyQuitsWithoutProcessExit reproduces code review CR-02: pressing
+// the default abort key ("Q") must return control to bubbletea via tea.Quit
+// (so raw mode / the alternate screen are restored before the process
+// exits) rather than terminating the process directly from inside Update.
+// Pre-fix, this test does not report a normal failure: it terminates the
+// whole package test binary with exit status 1 before results can be
+// reported — that IS the CR-02 reproduction.
+func TestAbortKeyQuitsWithoutProcessExit(t *testing.T) {
+	t.Run("abort_key_quits_and_marks_aborted", func(t *testing.T) {
+		m := NewModel(nil, false, config.DefaultKeymap(), DifftoolInfo{})
+		m.handleResize(80, 24)
+
+		newModel, cmd := m.Update(tea.KeyPressMsg{Code: 'Q', Text: "Q"})
+		if cmd == nil {
+			t.Fatal("abort key ('Q'): expected non-nil Cmd (tea.Quit), got nil")
+		}
+		if msg := cmd(); msg != (tea.QuitMsg{}) {
+			t.Errorf("abort key ('Q') cmd() = %#v, want tea.QuitMsg{}", msg)
+		}
+		if !WasAborted(newModel) {
+			t.Error("abort key ('Q'): WasAborted(newModel) = false, want true")
+		}
+	})
+
+	t.Run("quit_key_quits_without_abort", func(t *testing.T) {
+		m := NewModel(nil, false, config.DefaultKeymap(), DifftoolInfo{})
+		m.handleResize(80, 24)
+
+		newModel, cmd := m.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
+		if cmd == nil {
+			t.Fatal("quit key ('q'): expected non-nil Cmd (tea.Quit), got nil")
+		}
+		if msg := cmd(); msg != (tea.QuitMsg{}) {
+			t.Errorf("quit key ('q') cmd() = %#v, want tea.QuitMsg{}", msg)
+		}
+		if WasAborted(newModel) {
+			t.Error("quit key ('q'): WasAborted(newModel) = true, want false (quit and abort stay distinguishable)")
+		}
+	})
+
+	t.Run("abort_key_in_difftool_mode_behaves_identically", func(t *testing.T) {
+		dt := DifftoolInfo{Enabled: true, Filename: "render.go"}
+		m := NewModel(nil, false, config.DefaultKeymap(), dt)
+		m.handleResize(80, 24)
+
+		newModel, cmd := m.Update(tea.KeyPressMsg{Code: 'Q', Text: "Q"})
+		if cmd == nil {
+			t.Fatal("abort key ('Q') in difftool mode: expected non-nil Cmd (tea.Quit), got nil")
+		}
+		if msg := cmd(); msg != (tea.QuitMsg{}) {
+			t.Errorf("abort key ('Q') in difftool mode cmd() = %#v, want tea.QuitMsg{}", msg)
+		}
+		if !WasAborted(newModel) {
+			t.Error("abort key ('Q') in difftool mode: WasAborted(newModel) = false, want true (no mode-specific guard)")
+		}
+	})
+}
+
 // TestViewNoPanicOnShortTerminal reproduces code review CR-01: View()'s
 // separator-column repeat count goes negative (and strings.Repeat panics)
 // whenever the effective content height is small — a 1-row terminal with

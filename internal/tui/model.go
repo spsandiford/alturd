@@ -88,6 +88,29 @@ type model struct {
 	diffContent     string // unhighlighted rendered diff content
 	searchMatches   []Match
 	searchMatchIdx  int
+
+	aborted bool // true when the user pressed the abort key (config.ActionAbort, CR-02)
+}
+
+// Aborted reports whether the user pressed the abort key. See WasAborted for
+// the exported boundary-crossing accessor cmd/alturd uses.
+func (m model) Aborted() bool { return m.aborted }
+
+// WasAborted reports whether the final tea.Model returned by tea.Program.Run
+// represents an abort (the user pressed the documented abort key, default
+// "Q") rather than a normal quit. A true result means the caller must exit
+// with status 1 (code review CR-02, D-08: difftool.trustExitCode = true
+// reads only the process exit status); by the time tea.Program.Run returns,
+// the terminal has already been restored by bubbletea's own unwind.
+//
+// NewModel returns the unexported model type, so cmd/alturd cannot name it
+// directly — asserting the returned tea.Model against a locally declared
+// method interface is the idiomatic way to cross that package boundary in
+// Go. A final model that doesn't implement Aborted() (should not happen in
+// practice, since NewModel is the only constructor) is treated as false.
+func WasAborted(final tea.Model) bool {
+	a, ok := final.(interface{ Aborted() bool })
+	return ok && a.Aborted()
 }
 
 // NewModel creates the initial bubbletea model. files must be non-nil (may be empty).
