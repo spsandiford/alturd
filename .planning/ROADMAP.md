@@ -118,7 +118,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Every push to GitHub runs `go test ./...` on Linux, macOS, and Windows via GitHub Actions CI
   5. A git tag push triggers goreleaser to publish `CGO_ENABLED=0` binaries for Linux (amd64/arm64), macOS (amd64/arm64), and Windows (amd64) as GitHub Release assets
 
-**Plans**: 4/4 plans executed
+**Plans**: 5 plans (4 executed, 1 gap closure pending)
 **UI hint**: yes
 
 **Wave 1** *(parallel — no shared files)*
@@ -133,6 +133,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Wave 3** *(blocked on Wave 2 — writes a gitconfig cmd naming the flags Wave 2 registers)*
 
 - [x] 04-04-PLAN.md — `install-difftool` subcommand: four canonical gitconfig keys written idempotently with `--scope`/`--name`/`--force` (DIFFTOOL-03)
+
+**Wave 4** *(gap closure — blocked on Waves 2-3; touches model.go and main.go, and must preserve 04-04's `trustExitCode` contract)*
+
+- [ ] 04-05-PLAN.md — gap closure: difftool title-bar ellipsis truncation (DIFFTOOL-02, closes the 04-VERIFICATION.md gap), plus code-review CR-01 (short-terminal `View()` panic) and CR-02 (abort key skips terminal restore)
 
 ## Progress
 
