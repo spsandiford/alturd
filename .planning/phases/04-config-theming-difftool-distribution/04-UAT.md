@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 04-config-theming-difftool-distribution
 source: [04-VERIFICATION.md]
 started: 2026-08-04T20:34:49Z
-updated: 2026-08-05T00:05:00Z
+updated: 2026-08-05T00:15:00Z
 ---
 
 ## Current Test
@@ -62,5 +62,10 @@ blocked: 0
   reason: "User reported: git difftool floods the terminal with an unbounded repeating chain of \"git diff --no-index: git diff --no-index: ...\" until fork/exec fails with \"resource temporarily unavailable\", followed by hundreds of \"fatal: external diff died\" lines. The alturd TUI never launches — looks like the configured difftool command recursively invokes `git diff --no-index` (or itself) instead of the alturd binary, causing runaway process spawning until the OS fork limit is hit."
   severity: blocker
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "difftoolDiff() in cmd/alturd/main.go runs `exec.Command(\"git\", \"diff\", \"--no-index\", \"--\", local, remote)` without `--no-ext-diff` and without overriding Env. When git's own `git difftool` builtin invokes alturd as `difftool.<name>.cmd`, it unconditionally sets GIT_EXTERNAL_DIFF=git-difftool--helper in that child's environment. difftoolDiff's exec.Command inherits the full parent environment, so its internal `git diff --no-index` call also honors GIT_EXTERNAL_DIFF and delegates to git-difftool--helper instead of computing its own diff — which re-dispatches to difftool.alturd.cmd = alturd again with fresh $LOCAL/$REMOTE/$MERGED, which calls difftoolDiff again, recursing unboundedly until fork()/exec() starts failing. Confirmed empirically: (a) GIT_EXTERNAL_DIFF is present in a difftool-cmd child's env even in a fresh scratch repo with only the four canonical install-difftool keys set — not a pre-existing user config; (b) `git diff --no-index` demonstrably delegates to GIT_EXTERNAL_DIFF when set; (c) adding --no-ext-diff suppresses the recursion and preserves the existing 0/1 exit-code contract."
+  artifacts:
+    - path: "cmd/alturd/main.go"
+      issue: "difftoolDiff()'s `exec.Command(\"git\", \"diff\", \"--no-index\", \"--\", local, remote)` (~line 272) omits `--no-ext-diff`, so it recurses into git's own difftool dispatch via the inherited GIT_EXTERNAL_DIFF env var."
+  missing:
+    - "Add `--no-ext-diff` to the git diff --no-index argv in difftoolDiff so the internal diff computation never re-enters git's external-diff/difftool machinery."
+  debug_session: ".planning/debug/difftool-recursive-diff-loop.md"
