@@ -1,29 +1,20 @@
 ---
-status: testing
+status: complete
 phase: 04-config-theming-difftool-distribution
 source: [04-VERIFICATION.md]
 started: 2026-08-04T20:34:49Z
-updated: 2026-08-04T20:34:49Z
+updated: 2026-08-05T00:05:00Z
 ---
 
 ## Current Test
 
-number: 1
-name: Live tag-push GitHub Actions release
-expected: |
-  Push a real v0.1.0-style tag (matching v*.*.*) to a fresh GitHub repository with GitHub
-  Actions enabled and confirm the release workflow runs to completion. A GitHub Release is
-  created carrying five binary archives (linux amd64/arm64, darwin amd64/arm64, windows
-  amd64) plus checksums.txt, with no other assets, per the backstop truth in 04-02-PLAN.md
-  must_haves ("A tag pushed when no prior tag exists still produces a complete GitHub
-  Release...").
-awaiting: user response
+[testing complete]
 
 ## Tests
 
 ### 1. Live tag-push GitHub Actions release
 expected: A GitHub Release is created carrying five binary archives (linux amd64/arm64, darwin amd64/arm64, windows amd64) plus checksums.txt, with no other assets.
-result: [pending]
+result: pass
 
 ### 2. Live interactive git difftool render
 expected: |
@@ -33,7 +24,18 @@ expected: |
   being cut off mid-word; (b) pressing 'Q' returns the shell prompt cleanly with no
   garbled output and no need for `reset`/`stty sane`; (c) `echo $?` reports 1 after the
   'Q' abort.
-result: [pending]
+result: issue
+reported: |
+  Ran `git difftool -t alturd README.md` from ~/src/jig. Instead of launching the alturd
+  TUI, the terminal was flooded with an unbounded, repeating chain of
+  "git diff --no-index: git diff --no-index: ..." (thousands of repetitions on one line),
+  eventually hitting "fork/exec /usr/lib/git-core/git: resource temporarily unavailable"
+  once the process/fork limit was exhausted, followed by hundreds of
+  "fatal: external diff died, stopping at /tmp/git-blob-.../README.md" lines. The alturd
+  TUI never appeared. This looks like the configured difftool command is recursively
+  invoking `git diff --no-index` (or itself) rather than launching the alturd binary,
+  causing runaway process spawning until the OS fork limit was hit.
+severity: blocker
 
 ### 3. Judgment-tier prohibitions sign-off
 expected: |
@@ -41,15 +43,24 @@ expected: |
   no-silenced-exit, DIST-02 checksum coverage, THEME-01 no-visible-OSC-bytes, DIFFTOOL-01
   read-only file access) against the shipped code. Each prohibition holds with no
   counter-example.
-result: [pending]
+result: pass
 
 ## Summary
 
 total: 3
-passed: 0
-issues: 0
-pending: 3
+passed: 2
+issues: 1
+pending: 0
 skipped: 0
 blocked: 0
 
 ## Gaps
+
+- gap_id: G-04-2
+  truth: "Running `git difftool -t alturd <file>` in a real interactive terminal launches the alturd TUI difftool render."
+  status: failed
+  reason: "User reported: git difftool floods the terminal with an unbounded repeating chain of \"git diff --no-index: git diff --no-index: ...\" until fork/exec fails with \"resource temporarily unavailable\", followed by hundreds of \"fatal: external diff died\" lines. The alturd TUI never launches — looks like the configured difftool command recursively invokes `git diff --no-index` (or itself) instead of the alturd binary, causing runaway process spawning until the OS fork limit is hit."
+  severity: blocker
+  test: 2
+  artifacts: []
+  missing: []
