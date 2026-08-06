@@ -19,7 +19,10 @@ expected: |
   repeating "git diff --no-index:" flood, no "fork/exec ... resource temporarily unavailable", and
   no "fatal: external diff died" lines. Then re-check the two assertions this test was previously
   blocked from reaching: a long filename's title bar ends in "…" on one row, and pressing 'Q'
-  returns the shell prompt cleanly with `echo $?` reporting 1.
+  returns the shell prompt cleanly with git's own `echo $?` reporting 0 and no
+  "fatal: external diff died" line printed. (Expectation corrected from the original exit-status-1
+  passthrough per G-04-1: git's external-diff protocol cannot deliver both a quiet session and a
+  non-zero passthrough status — see .planning/debug/DEBUG-difftool-trustexitcode-fatal.md.)
 result: issue
 reported: |
   Reproduced via scripted pty session against a real `git difftool -t alturd -- <file>` run on an
