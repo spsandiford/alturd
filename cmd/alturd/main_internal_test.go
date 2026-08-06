@@ -9,6 +9,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/alturd/alturd/internal/git"
@@ -57,4 +58,59 @@ func TestReportError(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestDiffArgsDisablesExternalDiff pins diffArgs's argv composition
+// (04-06-PLAN.md Task 2, GIT-01 non-regression against the G-04-2 root-cause
+// family): the standalone `alturd [ref]` path must ask git for git's own
+// unified diff explicitly, so a developer's diff.external configuration
+// (delta, difftastic, ...) never silently feeds a third-party renderer's
+// output into diff.Parse.
+func TestDiffArgsDisablesExternalDiff(t *testing.T) {
+	tests := []struct {
+		name     string
+		refArgs  []string
+		wantArgs []string
+	}{
+		{
+			name:     "nil_refs",
+			refArgs:  nil,
+			wantArgs: []string{"diff", "--no-ext-diff"},
+		},
+		{
+			name:     "single_ref",
+			refArgs:  []string{"HEAD"},
+			wantArgs: []string{"diff", "--no-ext-diff", "HEAD"},
+		},
+		{
+			name:     "range_ref",
+			refArgs:  []string{"main..feature"},
+			wantArgs: []string{"diff", "--no-ext-diff", "main..feature"},
+		},
+		{
+			name:     "dash_separated_pathspec",
+			refArgs:  []string{"--", "internal/tui"},
+			wantArgs: []string{"diff", "--no-ext-diff", "--", "internal/tui"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := diffArgs(tc.refArgs)
+			if !slices.Equal(got, tc.wantArgs) {
+				t.Errorf("diffArgs(%v) = %v, want %v", tc.refArgs, got, tc.wantArgs)
+			}
+		})
+	}
+
+	t.Run("does_not_mutate_caller_slice", func(t *testing.T) {
+		input := []string{"HEAD"}
+		original := slices.Clone(input)
+
+		_ = diffArgs(input)
+
+		if !slices.Equal(input, original) {
+			t.Errorf("diffArgs mutated caller slice: got %v, want unchanged %v", input, original)
+		}
+	})
 }

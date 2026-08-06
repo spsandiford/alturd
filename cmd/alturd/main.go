@@ -140,10 +140,10 @@ func run(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 	} else {
-		// Build the git diff argument slice: literal "diff" subcommand
-		// prepended to the parsed ref/path arguments (ExecRunner.Run does not
-		// add "diff" itself).
-		gitArgs := append([]string{"diff"}, git.ParseRefArgs(args, cmd.ArgsLenAtDash())...)
+		// Build the git diff argument slice via diffArgs, which prepends the
+		// literal "diff" subcommand and --no-ext-diff to the parsed ref/path
+		// arguments (ExecRunner.Run does not add "diff" itself).
+		gitArgs := diffArgs(git.ParseRefArgs(args, cmd.ArgsLenAtDash()))
 
 		// Run git and obtain an io.Reader over the raw diff output.
 		reader, runErr := git.ExecRunner{}.Run(gitArgs)
@@ -186,6 +186,21 @@ func run(cmd *cobra.Command, args []string) error {
 		return errAborted
 	}
 	return nil
+}
+
+// diffArgs composes the standalone `alturd [ref]` path's git diff argv:
+// ExecRunner.Run passes argv verbatim (internal/git/runner.go's documented
+// contract is that the caller composes args), so argv composition is this
+// file's responsibility. --no-ext-diff is included for the same reason
+// difftoolDiff carries it (G-04-2): alturd renders diffs itself and
+// therefore always needs git's own unified-diff output, never a third-party
+// renderer's — without this flag, a developer with diff.external configured
+// for delta or difftastic would silently have that tool's output fed into
+// diff.Parse instead of a parseable unified diff. This is the
+// standalone-path counterpart of the protection difftoolDiff applies to the
+// difftool path. refArgs is not mutated; a fresh slice is always returned.
+func diffArgs(refArgs []string) []string {
+	return append([]string{"diff", "--no-ext-diff"}, refArgs...)
 }
 
 // errAborted is the sentinel run() returns when the user pressed the abort
