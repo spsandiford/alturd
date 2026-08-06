@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Diff Model** - Pure Go diff parsing and rendering engine validated against the Python fixture corpus (completed 2026-06-26)
 - [x] **Phase 2: Git Layer + CLI** - Git subprocess chokepoint, ref-grammar argument parsing, error handling, and logging (completed 2026-06-29)
 - [x] **Phase 3: TUI Application** - Full bubbletea v2 interactive app with file tree, diff pane, and all navigation (completed 2026-07-24)
-- [ ] **Phase 4: Config + Theming + Difftool + Distribution** - TOML config, OSC 11 theming, difftool mode, CI, goreleaser release
+- [x] **Phase 4: Config + Theming + Difftool + Distribution** - TOML config, OSC 11 theming, difftool mode, CI, goreleaser release (completed 2026-08-06)
 
 ## Phase Details
 
@@ -156,4 +156,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Diff Model | 3/3 | Complete    | 2026-06-26 |
 | 2. Git Layer + CLI | 3/3 | Complete    | 2026-06-29 |
 | 3. TUI Application | 5/5 | Complete    | 2026-07-24 |
-| 4. Config + Theming + Difftool + Distribution | 7/7 | In Progress|  |
+| 4. Config + Theming + Difftool + Distribution | 7/7 | Complete    | 2026-08-06 |

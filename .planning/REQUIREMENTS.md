@@ -42,9 +42,9 @@
 
 ### Theming & Config
 
-- [ ] **THEME-01**: User sees light/dark/auto theming — terminal background detected via OSC 11 with 50ms timeout fallback to dark
-- [ ] **CONFIG-01**: User can place a TOML config file at `$XDG_CONFIG_HOME/alturd/config.toml` (or pass `--config <path>`) to override defaults
-- [ ] **CONFIG-02**: User can override any default keybinding via the config file
+- [x] **THEME-01**: User sees light/dark/auto theming — terminal background detected via OSC 11 with 50ms timeout fallback to dark
+- [x] **CONFIG-01**: User can place a TOML config file at `$XDG_CONFIG_HOME/alturd/config.toml` (or pass `--config <path>`) to override defaults
+- [x] **CONFIG-02**: User can override any default keybinding via the config file
 
 ### Difftool Integration
 
@@ -54,9 +54,9 @@
 
 ### Distribution
 
-- [ ] **DIST-01**: Every push to GitHub runs `go test ./...` on Linux, macOS, and Windows via GitHub Actions CI
-- [ ] **DIST-02**: Every git tag push triggers GitHub Actions to build and publish pre-built binaries for Linux (amd64/arm64), macOS (amd64/arm64), and Windows (amd64) as GitHub Release assets
-- [ ] **DIST-03**: All released binaries are fully self-contained (`CGO_ENABLED=0`) with no runtime dependencies
+- [x] **DIST-01**: Every push to GitHub runs `go test ./...` on Linux, macOS, and Windows via GitHub Actions CI
+- [x] **DIST-02**: Every git tag push triggers GitHub Actions to build and publish pre-built binaries for Linux (amd64/arm64), macOS (amd64/arm64), and Windows (amd64) as GitHub Release assets
+- [x] **DIST-03**: All released binaries are fully self-contained (`CGO_ENABLED=0`) with no runtime dependencies
 
 ### Logging
 
