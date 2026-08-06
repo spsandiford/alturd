@@ -29,17 +29,19 @@ A developer can download a single binary, run `alturd` in any git repository, an
 - ✓ **NAV-03**: `Tab` switches focus between tree and diff pane — Phase 3
 - ✓ **NAV-04**: `q` exits 0; `Q` exits 1 — Phase 3
 - ✓ **SEARCH-01**: `/` opens in-pane search with ANSI-aware match highlighting and n/N navigation — Phase 3
+- ✓ **THEME-01**: Light/dark/auto theming, OSC 11 detection with 50ms timeout fallback to dark — Phase 4
+- ✓ **CONFIG-01**: TOML config file at `$XDG_CONFIG_HOME/alturd/config.toml` (or `--config <path>`) overrides defaults — Phase 4
+- ✓ **CONFIG-02**: Any default keybinding overridable via the config file — Phase 4
+- ✓ **DIFFTOOL-01**: `git difftool -t alturd <file>` launches a single-file side-by-side view without the file tree — Phase 4 (gap G-04-1 closed in 04-07: abort key no longer triggers git's fatal external-diff crash)
+- ✓ **DIFFTOOL-02**: TitleBar shows "alturd (difftool) — N of M — `<filename>`" via `GIT_DIFF_PATH_COUNTER`/`GIT_DIFF_PATH_TOTAL` — Phase 4
+- ✓ **DIFFTOOL-03**: `alturd install-difftool [--scope global|local] [--name NAME] [--force]` writes the four canonical gitconfig keys idempotently — Phase 4
+- ✓ **DIST-01**: GitHub Actions CI builds and tests on every push (Linux, macOS, Windows) — Phase 4
+- ✓ **DIST-02**: GitHub Actions releases pre-built binaries for Linux/macOS/Windows on git tag — Phase 4
+- ✓ **DIST-03**: Single self-contained binary (`CGO_ENABLED=0`) — no runtime dependencies — Phase 4
 
 ### Active
-- [ ] **THEME-01**: Light/dark/auto theming — detects terminal background automatically
-- [ ] **CONFIG-01**: Configurable keybindings via TOML config file (XDG config path)
+
 - [ ] **CLI-01**: `alturd [<refs>...] [-- <paths>...]` ref grammar matches Python implementation exactly
-- [ ] **CLI-02**: `alturd install-difftool` writes gitconfig keys to use alturd as `git difftool` backend
-- [ ] **HELPER-01**: `git difftool` integration — per-file launch skips tree, shows side-by-side directly
-- [ ] **HELPER-02**: TitleBar shows "N of M" counter when `GIT_DIFF_PATH_COUNTER`/`GIT_DIFF_PATH_TOTAL` are set
-- [ ] **DIST-01**: GitHub Actions CI builds and tests on every push (Linux, macOS, Windows)
-- [ ] **DIST-02**: GitHub Actions releases pre-built binaries for Linux/macOS/Windows on git tag
-- [ ] **DIST-03**: Single self-contained binary — no Go runtime or other dependencies needed at runtime
 
 ### Out of Scope
 
@@ -102,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-30 after Phase 02*
+*Last updated: 2026-08-06 after Phase 04*
