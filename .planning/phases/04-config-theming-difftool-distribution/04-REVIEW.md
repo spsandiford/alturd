@@ -1,6 +1,6 @@
 ---
 phase: 04-config-theming-difftool-distribution
-reviewed: 2026-08-04T00:00:00Z
+reviewed: 2026-08-06T00:00:00Z
 depth: standard
 files_reviewed: 24
 files_reviewed_list:
@@ -9,6 +9,7 @@ files_reviewed_list:
   - cmd/alturd/difftool.go
   - cmd/alturd/difftool_internal_test.go
   - cmd/alturd/difftool_test.go
+  - cmd/alturd/difftooldiff_internal_test.go
   - cmd/alturd/installdifftool_test.go
   - cmd/alturd/main.go
   - cmd/alturd/main_internal_test.go
@@ -31,30 +32,26 @@ files_reviewed_list:
   - internal/tui/model_test.go
 findings:
   critical: 0
-  warning: 6
-  info: 4
-  total: 10
+  warning: 7
+  info: 6
+  total: 13
 status: issues_found
 ---
 
 # Phase 04: Code Review Report
 
-**Reviewed:** 2026-08-04T00:00:00Z
+**Reviewed:** 2026-08-06T00:00:00Z
 **Depth:** standard
 **Files Reviewed:** 24
 **Status:** issues_found
 
 ## Summary
 
-This is a fresh, independent re-review of the same 24-file scope as the prior `04-REVIEW.md`, performed after the 04-05 gap-closure plan (commits `4549e4b`..`2e9b843`). `go build ./...`, `go vet ./...`, and `go test ./...` all pass cleanly.
+This is an independent adversarial pass over the full 24-file Phase 04 scope (config, theming, difftool integration, and CI/release distribution). `go build ./...`, `go vet ./...`, and `go test ./...` all pass. `gofmt -l` was also run directly as part of this review (see IN-01).
 
-**Both previously-reported Critical findings are now fixed, and independently verified as fixed here, not merely assumed:**
+The two previously-tracked Critical findings (a `strings.Repeat` panic on short terminals, and an `os.Exit(1)` call that bypassed bubbletea's terminal restore on the abort key) are confirmed fixed in the current tree: `View()`/`handleResize()` both clamp their height-derived counters at zero before `strings.Repeat`/`SetHeight`, and `ActionAbort` now routes through `tea.Quit` with the final model inspected via `tui.WasAborted` only after `tea.Program.Run()` returns. The difftool title bar's ellipsis truncation (`ansi.Truncate(title, m.termWidth, "…")`) is also present and correctly guards degenerate widths (0, 1). No Critical/Blocker-level defect was found in this pass — every remaining issue is a latent correctness gap, a robustness/logging gap, or a maintainability concern.
 
-- **CR-01** (`View()` panic via negative `strings.Repeat` count): `internal/tui/model.go`'s `View()` and `handleResize()` both now clamp their `contentH`/`sepLines` computations at zero (commit `bbfbb57`). I traced both call sites and confirmed the clamp is applied before the `strings.Repeat` call and before `SetHeight`. `TestViewNoPanicOnShortTerminal` (`internal/tui/model_test.go:492-524`) exercises heights 0-3 with search open and closed and asserts no panic, plus a non-regression check that the separator glyph count at 80×24 is unchanged. I re-ran this test in isolation and it passes.
-- **CR-02** (`os.Exit(1)` bypassing bubbletea's terminal restore): `ActionAbort` now sets `m.aborted = true` and returns `(m, tea.Quit)` (`internal/tui/model.go:574-583`) instead of calling `os.Exit` directly. `cmd/alturd/main.go`'s `run()` now captures `p.Run()`'s final model, checks `tui.WasAborted(finalModel)`, and returns a new `errAborted` sentinel (`Code: 1`, empty `Msg`) only *after* `p.Run()` has returned (i.e., after bubbletea has already restored the terminal) — this also means the deferred `logFile.Close()` now runs on the abort path, which it did not before. The new `reportError()` helper (`cmd/alturd/main.go:338-348`) suppresses output for an empty-`Msg` `ExitCodeError`, preserving the pre-fix silent-abort/exit-1 observable behavior. `TestAbortKeyQuitsWithoutProcessExit` (`internal/tui/model_test.go:434-483`) and `TestReportError` (`cmd/alturd/main_internal_test.go`) both cover this and pass.
-- The previously-verified **DIFFTOOL-02 ellipsis gap** (`04-VERIFICATION.md`) is also fixed: `difftoolTitleBar()` now calls `ansi.Truncate(title, m.termWidth, "…")` directly instead of `lipgloss.Style.MaxWidth` (which truncates with a hardcoded empty tail and cannot append an ellipsis — confirmed by reading `charm.land/lipgloss/v2@v2.0.5/style.go`). I traced `ansi.Truncate`'s implementation (`charmbracelet/x/ansi@v0.11.7/truncate.go`) through the degenerate widths 0 and 1 used in `TestDifftoolTitleBarTruncatesWithEllipsis` (`internal/tui/model_test.go:532-557`) and confirmed neither panics nor produces a mismatched display width.
-
-**What is still open:** every Warning and Info item from the prior review (`WR-01` through `WR-05`, `IN-01`, `IN-02`) remains present in the current tree exactly as before — the 04-05 plan's scope was explicitly limited to CR-01/CR-02/the ellipsis gap (the `refreshTreeContent`/`diffW`-width fix, the CI `-race` gap, etc. were left as tracked debt per the plan and per in-code comments, e.g. `model.go:325 "Height only; diffW (WR-02) stays untouched"`). I independently re-verified each rather than assuming they're still accurate; findings below reflect that fresh verification, plus a small number of newly-observed items in this pass (duplicated search-close logic, a silently-swallowed file-read error, and a UX inconsistency introduced by the ellipsis fix itself).
+The most notable new finding from this pass (WR-07) is a genuine correctness bug in difftool full-file rendering for **deleted** files: `loadDifftoolFiles` unconditionally sources full-file content from `--difftool-remote`, never `--difftool-local`, even though `AlignFull`'s own documented contract requires the *old* file for deletions. The standalone (non-difftool) code path (`fetchFileLines`) already special-cases `f.IsDelete` correctly — this asymmetry between the two code paths is the tell. Its practical impact is currently masked because a full-file deletion diff is always a single hunk spanning the whole file (so no inter-hunk context gap ever needs filling), but it is a real contract violation that will silently produce blank content the moment that invariant doesn't hold.
 
 ## Warnings
 
@@ -69,7 +66,7 @@ func (m *model) refreshTreeContent() {
 	m.treeVP.SetContent(content)
 }
 ```
-A function named `refreshTreeContent` sets `m.diffVP`'s width, never `m.treeVP`'s. `m.treeVP.SetWidth` is set only inside `handleResize` (`model.go:342`). Today this is masked because every call site (`handleResize`, `toggleAllFiles`, `treeIdxMove`, `treeToggleExpand`) either runs immediately after `handleResize` already set the identical `diffVP` width, or never runs in difftool mode where `treeVP` doesn't matter. It is a latent bug: any future call site that invokes `refreshTreeContent()` without a preceding `handleResize` will silently fail to resize the tree pane while incorrectly re-deriving the diff pane's width as an unrelated side effect.
+A function named `refreshTreeContent` sets `m.diffVP`'s width and never touches `m.treeVP`'s width at all — `m.treeVP.SetWidth` is set only inside `handleResize` (`model.go:342`). All four call sites (`handleResize` itself, `toggleAllFiles`, `treeIdxMove`, `treeToggleExpand`) currently happen to run immediately after (or as part of) a `handleResize` call that already set the correct `diffVP` width via the identical formula, so the redundant assignment here is a no-op in practice today. But this is exactly the kind of latent bug that survives refactors silently: any future call site that invokes `refreshTreeContent()` without a preceding `handleResize` (e.g. a hypothetical "rename current node" or lazy-tree-reload feature) will fail to resize the tree pane while pointlessly recomputing an unrelated pane's width.
 **Fix:**
 ```go
 func (m *model) refreshTreeContent() {
@@ -79,7 +76,7 @@ func (m *model) refreshTreeContent() {
 }
 ```
 
-### WR-02: `diffW` is not clamped and can go negative on narrow terminals
+### WR-02: `diffW` is never clamped and goes negative on narrow terminals
 
 **File:** `internal/tui/model.go:340-345`
 **Issue:**
@@ -90,10 +87,10 @@ m.treeVP.SetHeight(contentH)
 m.diffVP.SetWidth(diffW)
 m.diffVP.SetHeight(contentH)
 ```
-`m.treeWidth` is `treeWidthFocused` (45) when the tree pane is focused. On any terminal narrower than 46 columns (real in tmux/split panes) `diffW` goes negative. I traced this through `charm.land/bubbles/v2@v2.1.0/viewport.go` and `charm.land/lipgloss/v2@v2.0.5`: it does **not** panic (both `maxWidth()`'s `max(0, ...)` guard and `alignTextHorizontal`'s `shortAmount > 0` guard prevent a crash), but the practical effect is that `diffVP.maxWidth()` clamps to 0 and `visibleLines()` returns `nil` — the entire diff pane silently renders as blank while the tree pane is focused on a narrow terminal, with no error or indication to the user. `diff.Render`/`diff.RenderFull` already establish the correct pattern (`internal/diff/render.go:61-63`: clamp to a minimum of 6) that this call site does not follow.
-**Fix:** Clamp `diffW` (and `m.treeWidth` itself) to a sane minimum before calling `SetWidth`, matching `internal/diff/render.go`'s existing pattern.
+`m.treeWidth` is `treeWidthFocused` (45) whenever the tree pane has focus. On any terminal narrower than 46 columns — a realistic width inside a tmux split or a resized terminal emulator — `diffW` goes negative. I traced this into `charm.land/bubbles/v2@v2.1.0/viewport.go`: `maxWidth()`'s `max(0, m.Width()-...)` guard prevents a panic, but `visibleLines()` early-returns `nil` once `maxWidth()` clamps to 0, so the entire diff pane silently renders blank with no indication to the user while the tree pane is focused on a narrow terminal. `internal/diff/render.go:61-63` (`Render`/`RenderFull`) already establishes the correct pattern for this exact class of input — clamp to a sane minimum (6) before use — that this call site does not follow. The in-code comment at `model.go:325` ("Height only; diffW (WR-02) stays untouched") confirms this is a known, currently-unaddressed gap rather than an oversight introduced by this review.
+**Fix:** Clamp `diffW` (and/or `m.treeWidth`) to a sane minimum before calling `SetWidth`, matching `internal/diff/render.go`'s existing width-floor pattern.
 
-### WR-03: Working-tree fallback in `fetchFileLines` uses a repo-root-relative path against the process's actual working directory
+### WR-03: `fetchFileLines`'s working-tree fallback resolves a repo-relative path against the process's actual CWD
 
 **File:** `internal/tui/model.go:954-959`
 **Issue:**
@@ -101,28 +98,28 @@ m.diffVP.SetHeight(contentH)
 // Last resort: read from the working tree.
 data, err := os.ReadFile(name)
 ```
-`name` is repo-root-relative (used successfully by the two preceding `git show HEAD:name` / `git show :name` attempts). `os.ReadFile` resolves it relative to the process's actual CWD, not the repo root. If alturd is invoked from a subdirectory and the file is untracked/unstaged (so both `git show` attempts fail), this fallback silently fails to find a file that does exist, and `refreshDiffContent` quietly degrades from full-file to hunk-only rendering with no user-visible error.
-**Fix:** Resolve `name` against the repository root (e.g. via `git rev-parse --show-toplevel`) before the `os.ReadFile` fallback, or explicitly document the CWD-dependence of this specific fallback path.
+`name` is repo-root-relative — that's exactly why the two preceding attempts (`git show HEAD:name`, `git show :name`) work regardless of the user's current directory. `os.ReadFile`, however, resolves `name` relative to the process's actual working directory, not the repository root. If alturd is invoked from a subdirectory and the target file is untracked/unstaged (so both `git show` calls legitimately fail), this fallback silently fails to find a file that does exist on disk, and `refreshDiffContent` quietly degrades from full-file to hunk-only rendering with no error surfaced to the user.
+**Fix:** Resolve `name` against the repository root (e.g. via a cached `git rev-parse --show-toplevel`) before this fallback `os.ReadFile` call, or explicitly document that this specific fallback is CWD-dependent.
 
 ### WR-04: `DetectDarkBackground`'s abandoned goroutine can race the TUI for the first keystroke
 
 **File:** `internal/config/theme.go:66-78`
-**Issue:** When the OSC 11 query exceeds `DetectTimeout` (50ms), `DetectDarkBackground` returns `true` (dark fallback) while its query goroutine is still running and still holds a read on the terminal file descriptor that `tea.NewProgram(m).Run()` is about to take over immediately afterward (`cmd/alturd/main.go:174-176`). The function's own doc comment already flags this as an unresolved, unverified assumption (`FA-04-02`) — this is unchanged from the prior review; on a slow/unresponsive terminal (exactly the case this timeout exists to handle), the first keystroke sent to the freshly-started bubbletea program can be silently consumed by the abandoned OSC 11 response reader instead, producing an intermittent "first key is dropped" bug.
-**Fix:** Bound the query with a context/cancelable read so the goroutine is provably done before `tea.NewProgram` takes the tty, or explicitly drain/flush stdin immediately before starting `tea.NewProgram`.
+**Issue:** When the OSC 11 terminal round-trip exceeds `DetectTimeout` (50ms), `DetectDarkBackground` returns `true` (dark fallback) while its query goroutine is still running and still holds a read on the same terminal file descriptor that `tea.NewProgram(m).Run()` (`cmd/alturd/main.go:175-176`) takes over immediately afterward. The function's own doc comment already flags this as an open, unverified assumption (`FA-04-02: "that has not been independently verified here"`), which this review independently confirms is still accurate — nothing added since guards against it. On a slow or unresponsive terminal (precisely the scenario this timeout exists to handle), the abandoned reader can consume the very first keystroke the user sends to the freshly-started bubbletea program, producing an intermittent "first key is dropped" bug that would be very hard to reproduce and diagnose from a bug report.
+**Fix:** Bind the OSC 11 query to a context/cancelable read (or an explicit stdin drain immediately before `tea.NewProgram`) so the goroutine is provably finished, not merely abandoned, before bubbletea takes over the TTY.
 
-### WR-05: CI does not run tests with the race detector, despite documented project convention
+### WR-05: CI does not run the test suite with the race detector
 
 **File:** `.github/workflows/ci.yml:20`
-**Issue:** `run: go test ./...` has no `-race` flag. `CLAUDE.md`'s own stack guidance states: "go test -race — Race detector — Enable in CI; bubbletea v2 is goroutine-safe but custom async code needs validation." This phase's own code contains exactly that kind of custom async code — `DetectDarkBackground`'s goroutine (WR-04 above) and `computeIntraLineWithTimeout`'s goroutine-with-timeout pattern in `internal/diff/render.go:311-323` — yet CI never exercises either under the race detector.
+**Issue:** `run: go test ./...` has no `-race` flag. This project's own stack guidance (`CLAUDE.md`) states: *"go test -race — Race detector — Enable in CI; bubbletea v2 is goroutine-safe but custom async code needs validation."* This phase introduces exactly that class of custom async code — the goroutine-with-buffered-channel pattern in `DetectDarkBackground` (`internal/config/theme.go:67-70`, see WR-04) and the goroutine-with-timeout pattern in `computeIntraLineWithTimeout` (`internal/diff/render.go:311-323`) — yet CI never exercises either under `-race`.
 **Fix:**
 ```yaml
       - run: go test -race ./...
 ```
 
-### WR-06: Duplicated "close search and reset state" logic repeated four times in `handleKey`
+### WR-06: The "close search and reset state" sequence is duplicated four times in `handleKey`
 
 **File:** `internal/tui/model.go:494-501, 515-521, 528-534, 536-542`
-**Issue:** The five-statement sequence that closes search mode and resets its state —
+**Issue:** The block that closes search mode and resets its state —
 ```go
 m.searchMode = false
 m.searchInput.Reset()
@@ -130,26 +127,53 @@ m.searchMatches = nil
 m.searchMatchIdx = 0
 m.handleResize(m.termWidth, m.termHeight)
 ```
-(plus `m.searchTyping = false` in the typing-phase variant) — appears four separate times: typing-phase `esc`, navigation-phase `esc`, navigation-phase `]`, and navigation-phase `[`. This is the same class of risk already demonstrated by WR-01: a future edit to search-close behavior (e.g. adding a new field to reset) is likely to update some but not all four copies, silently reintroducing inconsistent state between the `esc` path and the `]`/`[` paths.
-**Fix:** Extract a `closeSearch()` helper method and call it from all four sites.
+(plus `m.searchTyping = false` in the typing-phase `esc` variant) is copy-pasted at four separate call sites: typing-phase `esc`, navigation-phase `esc`, navigation-phase `]`, and navigation-phase `[`. This is the same class of maintenance risk as WR-01: a future change to search-close behavior (e.g. resetting a new field, or fixing an ordering bug) is very likely to be applied to some but not all four copies, silently reintroducing inconsistent state between the `esc` path and the `[`/`]` paths.
+**Fix:** Extract a `closeSearch()` helper method (with a `keepTyping bool` or similar parameter for the one variant that also clears `searchTyping`) and call it from all four sites.
+
+### WR-07: Difftool full-file rendering sources content from the wrong side (`--difftool-remote`) for deleted files
+
+**File:** `cmd/alturd/main.go:251-254` (`loadDifftoolFiles`), `internal/tui/model.go:371` (`refreshDiffContent`)
+**Issue:** `loadDifftoolFiles` always reads `--difftool-remote` into `DifftoolInfo.NewFileLines`, regardless of whether the parsed file is a deletion:
+```go
+var newFileLines []string
+if data, readErr := os.ReadFile(remote); readErr == nil {
+	newFileLines = splitDifftoolFileLines(data)
+}
+```
+`refreshDiffContent` then feeds this unconditionally into `diff.RenderFull`/`diff.AlignFull` as `fileLines` whenever `m.difftool.Enabled`. But `AlignFull`'s own doc comment (`internal/diff/align.go:255-257`) is explicit: `fileLines` must be *"the new file for modified/added files, **the old file for deleted files**"*. For a deletion, `--difftool-remote` is git's `/dev/null` (or an empty temp file) — the *new* (nonexistent) side — so `NewFileLines` ends up empty exactly when the file is deleted, i.e. exactly the case where `AlignFull` needs the *old* content instead. Tellingly, the standalone (non-difftool) code path already gets this right: `fetchFileLines` (`internal/tui/model.go:924-929`) explicitly special-cases `f.IsDelete` and reads `git show HEAD:OldName` instead of the new-file path. The difftool path has no equivalent branch — it only ever reads one side (`remote`), never `local`.
+Impact today is masked: a full-file deletion diff (`git diff --no-index local /dev/null`) is always a single hunk spanning the entire old file, so `AlignFull`'s inter-hunk-context-gap logic (the only place `fileLines` is consulted) never needs to fill a gap, and the deleted lines themselves render correctly straight from the hunk data. But this is correct by accident, not by design: it silently breaks (blank inter-hunk context) the moment a deletion diff isn't representable as one contiguous hunk, and there is no test in this file list that exercises FullFile mode against a deleted file in difftool mode to catch a regression here.
+**Fix:** Read `local` instead of `remote` when the parsed file is a deletion:
+```go
+files, err := diff.Parse(reader)
+// ...
+refPath := remote
+if len(files) > 0 && files[0].IsDelete {
+	refPath = local
+}
+var newFileLines []string
+if data, readErr := os.ReadFile(refPath); readErr == nil {
+	newFileLines = splitDifftoolFileLines(data)
+}
+```
+(and consider renaming `DifftoolInfo.NewFileLines` to something contract-neutral, e.g. `RefFileLines`, since it no longer always holds "new" content).
 
 ## Info
 
-### IN-01: `gofmt` formatting violations persist in reviewed files
+### IN-01: `gofmt` formatting violations in three reviewed files
 
 **File:** `cmd/alturd/main.go`, `internal/diff/render.go`, `internal/tui/model.go`
-**Issue:** `gofmt -l` still flags all three files — import-group ordering (`charm.land/bubbletea/v2` not grouped with other third-party imports in `main.go`/`model.go`) and struct-field/comment alignment drift in `model.go`'s `model` struct and `render.go`'s `bg*` const block. This is unchanged from the prior review; `.golangci.yml` still does not enable `gofmt`/`goimports`, so it doesn't fail CI.
-**Fix:** `gofmt -w cmd/alturd/main.go internal/diff/render.go internal/tui/model.go`, and/or enable the `gofmt`/`goimports` linter in CI.
+**Issue:** Running `gofmt -l` directly against the reviewed file set flags all three files. `.golangci.yml` enables `staticcheck`, `govet`, `errcheck`, `revive` but has no `formatters` section (golangci-lint v2 separates gofmt/goimports into `formatters`), so this drift does not fail CI or local `golangci-lint run`.
+**Fix:** `gofmt -w cmd/alturd/main.go internal/diff/render.go internal/tui/model.go`, and add a `formatters` block enabling `gofmt`/`goimports` to `.golangci.yml` so future drift is caught automatically.
 
-### IN-02: `install-difftool` writes a literal `"alturd"` command, relying on PATH
+### IN-02: `install-difftool` writes a bare `alturd` command, relying entirely on `PATH`
 
-**File:** `cmd/alturd/difftool.go:35-45`
-**Issue:** `difftoolCmdTemplate` hardcodes the bare command name `alturd` rather than the currently-running executable's resolved path (`os.Executable()`). If a user runs `install-difftool` from a binary not on `PATH` (e.g. `./alturd install-difftool` from a freshly downloaded release archive), `git difftool` will later fail with "alturd: command not found" even though the tool that wrote the config is right there. Unchanged from the prior review; may be an accepted trade-off (PATH-relative commands survive machine/dotfile-sync moves better than a baked-in absolute path) but isn't documented as such anywhere in the reviewed files.
-**Fix (if not an accepted trade-off):** Use `os.Executable()` (resolved/symlink-evaluated) as the default `cmd` value, or document the PATH requirement in the install-difftool success message.
+**File:** `cmd/alturd/difftool.go:45`
+**Issue:** `difftoolCmdTemplate` hardcodes the literal command name `alturd` rather than the currently-running executable's resolved path. A user who runs `install-difftool` from a binary that isn't on `PATH` yet (e.g. `./alturd install-difftool` immediately after extracting a downloaded release archive, before moving it into `/usr/local/bin`) will get a gitconfig entry that fails with "alturd: command not found" the next time `git difftool` is invoked — even though the very binary that wrote the config is sitting right there. This may be an intentional trade-off (a PATH-relative command survives the binary being moved/updated later, whereas a baked-in absolute path would not), but that trade-off isn't documented anywhere in the reviewed files or in the install-difftool success message.
+**Fix (if not an accepted trade-off):** Resolve `os.Executable()` (following symlinks) and use it as the default `cmd` value, or at minimum note the PATH requirement in the "Installed alturd as git difftool..." success message.
 
-### IN-03: `os.ReadFile(remote)` failure in `loadDifftoolFiles` is silently swallowed
+### IN-03: `os.ReadFile(remote)` failure in `loadDifftoolFiles` is silently discarded
 
-**File:** `cmd/alturd/main.go:236-239`
+**File:** `cmd/alturd/main.go:251-254`
 **Issue:**
 ```go
 var newFileLines []string
@@ -157,17 +181,43 @@ if data, readErr := os.ReadFile(remote); readErr == nil {
 	newFileLines = splitDifftoolFileLines(data)
 }
 ```
-If reading git's own `--difftool-remote` temp file fails (permissions, race with git cleaning up the temp file, etc.), `readErr` is discarded entirely — no log entry, no stderr message. `internal/tui/model.go`'s `refreshDiffContent` then unconditionally takes the `RenderFull` branch for difftool mode regardless of whether `NewFileLines` is populated (it never checks an error there, since difftool mode has none to check), so the failure surfaces only as unexplained blank/empty context lines in the diff pane, with nothing for the user to diagnose. Low likelihood (the file is git's own freshly-materialized temp file) but worth at least a debug-log entry via `internal/log`.
-**Fix:** Log `readErr` via `applog`'s log file (already wired for exactly this kind of non-fatal diagnostic) instead of discarding it silently.
+`readErr` is checked only to decide whether to populate `newFileLines` — it is never logged or otherwise surfaced. If reading git's own `--difftool-remote` temp file fails (permissions, an unusual git cleanup race, etc.), the only symptom is unexplained blank content in full-file mode, with nothing recorded anywhere for a user or maintainer to diagnose, even though `internal/log` (`applog`) is already initialized in `run()` specifically for this kind of non-fatal diagnostic.
+**Fix:** Log `readErr` via `applog` (e.g. `charmlog.Warn("reading difftool remote file", "path", remote, "err", readErr)`) instead of discarding it.
 
-### IN-04: Tree-pane truncation still lacks the ellipsis the difftool title bar now has
+### IN-04: Tree-pane name truncation has no ellipsis, unlike the difftool title bar
 
 **File:** `internal/tui/model.go:472`
-**Issue:** `renderTree()` still truncates long file/directory names via `lipgloss.NewStyle().MaxWidth(m.treeWidth).Render(line)`, which — as the DIFFTOOL-02 fix's own commit message and doc comment (`model.go:292-299`) point out — truncates with a hardcoded empty tail and cannot append an ellipsis. The difftool title bar was deliberately switched away from this exact pattern to `ansi.Truncate(..., "…")` to satisfy the Copywriting Contract, but the tree pane (same visual truncation problem, same underlying cause) was explicitly left as-is ("Tree pane (renderTree, same MaxWidth pattern) is untouched per the plan's explicit scope decision — tracked as debt", commit `b7740ae`). The result is a now-visible inconsistency within the same UI: overflowing filenames are marked with "…" in the difftool title bar but silently clipped with no indicator in the tree pane.
-**Fix:** Apply the same `ansi.Truncate(line, m.treeWidth, "…")` pattern to `renderTree`'s per-row truncation for consistency (tracked debt per the 04-05 plan; flagging here so it isn't lost).
+**Issue:** `renderTree()` truncates long file/directory names via `lipgloss.NewStyle().MaxWidth(m.treeWidth).Render(line)`. `difftoolTitleBar()`'s own doc comment (`model.go:292-299`) explains in detail why `lipgloss.Style.MaxWidth` is unsuitable for this exact purpose: it truncates via a hardcoded empty tail internally and cannot append an ellipsis, which is why the title bar was switched to `ansi.Truncate(title, m.termWidth, "…")`. The tree pane has the identical truncation-without-indicator problem (an overflowing filename in a narrow/unfocused tree column is silently clipped) but was never migrated to the same fix, so the same UI now behaves inconsistently: the difftool title bar marks truncation with "…", the tree pane does not.
+**Fix:** Apply the same `ansi.Truncate(line, m.treeWidth, "…")` pattern to the per-row truncation in `renderTree`.
+
+### IN-05: `config.Load` treats every `xdg.SearchConfigFile` error as "no config file found"
+
+**File:** `internal/config/config.go:60-64`
+**Issue:**
+```go
+found, err := xdg.SearchConfigFile("alturd/config.toml")
+if err != nil {
+	// Not found — silently use defaults (D-03).
+	return DefaultConfig(), nil
+}
+```
+Any error from `xdg.SearchConfigFile` — not just "no matching file in any XDG config directory" — is swallowed and mapped to "use defaults, no error." If one of the XDG config directories on the search path is unreadable (e.g. a permissions problem on `$XDG_CONFIG_HOME` itself, or a broken symlink), the user gets silent default behavior with no indication that their real config was never even looked at, which could be confusing to debug ("my config changes aren't taking effect and there's no error").
+**Fix:** If `adrg/xdg` exposes a way to distinguish "not found" from other I/O errors (or if a type assertion/sentinel is available), only swallow the specific "not found" case and surface anything else as a genuine `config:`-prefixed error.
+
+### IN-06: `gitConfigRun`'s "outside a repository" detection is a broad substring match applied to every `git config` invocation
+
+**File:** `cmd/alturd/difftool.go:161-175`
+**Issue:**
+```go
+if strings.Contains(strings.ToLower(stderrStr), "git repository") {
+	return "", exitErr.ExitCode(), git.ErrLocalScopeOutsideRepo
+}
+```
+This check runs for *every* `git config` subprocess invocation `gitConfigRun` makes (both `--get` and write calls, for both `--global` and `--local` scope), not just the `--local`-outside-a-repo case it's documented to handle. It's a deliberate, documented deviation from a narrower literal-string match (per the in-code comment, chosen because git's exact wording varies by version), which is a reasonable trade-off — but it means any unrelated `git config` failure whose stderr happens to mention "git repository" (for example, wording changes in a future git version, or a `--global` write failing for a reason that happens to reference "repository") would be misreported as `ErrLocalScopeOutsideRepo` with its fixed "--scope local requires running inside a git repository." message, which would be actively misleading if the actual scope in play was `--global`.
+**Fix:** At minimum, scope the substring check to only apply when `scopeFlag == "--local"`, so a `--global` failure can never be misclassified as the local-scope error.
 
 ---
 
-_Reviewed: 2026-08-04T00:00:00Z_
+_Reviewed: 2026-08-06T00:00:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
