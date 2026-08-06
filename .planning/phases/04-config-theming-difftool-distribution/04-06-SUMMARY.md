@@ -151,3 +151,7 @@ None - no external service configuration required.
 ---
 *Phase: 04-config-theming-difftool-distribution*
 *Completed: 2026-08-06*
+
+## Self-Check: PASSED
+
+All claimed files exist on disk (cmd/alturd/difftooldiff_internal_test.go, cmd/alturd/main.go, cmd/alturd/main_internal_test.go, .planning/phases/04-config-theming-difftool-distribution/04-06-SUMMARY.md). All claimed commits (535f626, 3e653e8, 2c8794d, 1590d07) found in git log.
