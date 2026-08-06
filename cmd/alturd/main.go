@@ -263,13 +263,29 @@ func loadDifftoolFiles(local, remote, path string) ([]*gitdiff.File, tui.Difftoo
 // temp files) whose carriage returns are legitimate file content, not a
 // git-subprocess line-ending artifact — stripping them would corrupt the
 // diff of any CRLF-formatted source file (04-RESEARCH.md Pitfall F).
+//
+// --no-ext-diff is load-bearing and must never be removed (G-04-2,
+// .planning/debug/difftool-recursive-diff-loop.md). This function is a pure
+// diff-computation primitive, not an external-diff dispatch point — but
+// git's own difftool builtin unconditionally sets
+// GIT_EXTERNAL_DIFF=git-difftool--helper in the environment of whatever it
+// invokes as difftool.<name>.cmd, and this exec.Command inherits that
+// environment. Without --no-ext-diff, this call honors the inherited
+// GIT_EXTERNAL_DIFF (or an ambient diff.external gitconfig) exactly like any
+// other `git diff` invocation and delegates straight back into git's own
+// difftool dispatch, which re-invokes difftool.alturd.cmd = alturd with
+// fresh $LOCAL/$REMOTE/$MERGED, which calls difftoolDiff again — unbounded
+// recursive process spawning until the OS process table is exhausted. This
+// is not defensive hardening; it is a correctness requirement of this call
+// site. TestDifftoolDiffIgnoresExternalDiffConfiguration is the regression
+// gate.
 func difftoolDiff(local, remote string) (io.Reader, error) {
 	// SECURITY: exec.Command uses argv form — each element is a separate
 	// argument. Shell metacharacters in local/remote (user-supplied paths
 	// crossing a subprocess boundary) are never interpreted (ASVS V5,
 	// T-04-03-02). The "--" separator precedes the two path arguments so a
 	// path beginning with a hyphen cannot be parsed as a git option.
-	cmd := exec.Command("git", "diff", "--no-index", "--", local, remote) //nolint:gosec
+	cmd := exec.Command("git", "diff", "--no-index", "--no-ext-diff", "--", local, remote) //nolint:gosec
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
