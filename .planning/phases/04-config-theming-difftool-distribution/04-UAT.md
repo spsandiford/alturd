@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 04-config-theming-difftool-distribution
 source: [04-VERIFICATION.md]
 started: 2026-08-06T10:23:44Z
-updated: 2026-08-06T18:26:18Z
+updated: 2026-08-06T18:41:00Z
 ---
 
 ## Current Test
@@ -53,5 +53,36 @@ blocked: 0
   reason: "Reproduced via scripted pty test: `git difftool -t alturd -- <file>` then 'Q' prints 'fatal: external diff died, stopping at <file>' and exits 128. alturd itself exits cleanly with code 1 (confirmed by direct invocation and by a logging wrapper around the difftool.alturd.cmd), but `alturd install-difftool` sets `difftool.trustExitCode = true` locally, which causes git's diff engine to treat any nonzero exit from the external diff tool as fatal, regardless of exit code value."
   severity: major
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: |
+    cmd/alturd/difftool.go:116 (runInstallDifftool) unconditionally writes difftool.trustExitCode=true
+    to gitconfig. Combined with alturd's intentional exit-code-1-on-abort convention
+    (cmd/alturd/main.go:211 errAborted; internal/tui/model.go:92,582 Aborted()/WasAborted(),
+    triggered by the default 'Q' keybinding = config.ActionAbort), this makes git's core diff
+    engine fatally die on every abort. Traced end-to-end against installed git 2.39.5 source:
+    difftool.trustExitCode=true -> builtin/difftool.c's cmd_difftool() sets
+    GIT_DIFFTOOL_TRUST_EXIT_CODE=true unconditionally on the `git diff` subprocess env ->
+    inherited by git-difftool--helper (invoked per changed file as GIT_EXTERNAL_DIFF by diff.c)
+    -> the helper's per-file loop propagates alturd's exit 1 as its own exit status (without this
+    var it always falls through to `exit 0`, masking the tool's exit code) -> diff.c's
+    run_external_diff()/finish_command() treats ANY nonzero exit from GIT_EXTERNAL_DIFF as an
+    unconditional fatal crash -- there is no git-side mechanism to distinguish "intentional
+    cancel" from "tool crashed" -- so it calls die("external diff died, stopping at %s"), and
+    git difftool reports 128. This is a structural git limitation, not a simple code typo:
+    difftool.trustExitCode=true and exit-1-on-abort can never coexist without triggering die().
+    Two non-equivalent fix directions: (1) stop writing difftool.trustExitCode=true (delivers
+    the UAT's literal single-file clean-exit expectation, but silently disables abort-driven
+    early-stop across multi-file `git difftool` sessions -- pressing Q on file N would no longer
+    prevent file N+1 from opening); or (2) keep trustExitCode=true for its multi-file
+    abort-stopping value but change alturd's quit convention so an intentional abort doesn't
+    reach git as a nonzero exit -- which resolves the fatal message but means alturd's own
+    process exit code no longer distinguishes abort from normal quit for non-git callers.
+  artifacts:
+    - path: "cmd/alturd/difftool.go"
+      issue: "line 116 (runInstallDifftool) unconditionally sets difftool.trustExitCode=true, which is incompatible with alturd's exit-1-on-abort convention under git's diff-engine error model"
+    - path: "cmd/alturd/main.go"
+      issue: "line 211: errAborted exit-code-1 convention (intentional, not itself buggy -- see root_cause)"
+    - path: "internal/tui/model.go"
+      issue: "lines 92, 582: Aborted()/WasAborted() -- 'Q' triggers config.ActionAbort, which surfaces as alturd's own exit 1"
+  missing:
+    - "Decide and implement one of the two fix directions in root_cause (drop/change trustExitCode, or change alturd's abort exit-code convention), since both cannot be satisfied simultaneously due to git's GIT_EXTERNAL_DIFF protocol"
+  debug_session: .planning/debug/DEBUG-difftool-trustexitcode-fatal.md
