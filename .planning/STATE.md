@@ -5,7 +5,7 @@ milestone_name: milestone
 current_phase: 04
 status: completed
 stopped_at: Completed 04-07-PLAN.md (G-04-1 gap closure)
-last_updated: "2026-08-06T19:26:40.577Z"
+last_updated: "2026-08-06T20:12:24.206Z"
 last_activity: 2026-08-06
 last_activity_desc: Phase 04 complete
 progress:
@@ -108,6 +108,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 6: difftoolDiff and diffArgs both carry --no-ext-diff (no cmd.Env rewriting) to close G-04-2's recursive difftool dispatch and its standalone-path analog; TestDifftoolDiffIgnoresExternalDiffConfiguration and TestDiffArgsDisablesExternalDiff pin the regression
 - [Phase ?]: Phase 4 Plan 7 (G-04-1 gap closure): difftool.trustExitCode written as explicit false (not unset) so config-scope precedence converges machines already carrying the superseded true value
 - [Phase ?]: Phase 4 Plan 7: accepted trade-off — with trustExitCode=false, aborting file N in a multi-file git difftool session no longer stops file N+1 from opening (direction 2, changing alturd's own exit convention, was explicitly rejected)
+- Phase 4: UAT test 1 re-verified pass after G-04-1 gap closure (04-07) — git difftool exits 0 on abort with no fatal message, confirmed via scripted pty session
+- Phase 4: Security review — 49/49 STRIDE threats closed (32 verified in implementation, 17 accepted risk), threats_open: 0 (04-SECURITY.md)
 
 ### Pending Todos
 
@@ -116,10 +118,9 @@ None.
 ### Blockers/Concerns
 
 - Phase 3 research flag: in-pane search ANSI-aware marker insertion is non-trivial
-- Phase 3 research flag: in-pane search ANSI-aware marker insertion is non-trivial
 
 ## Session Continuity
 
-Last session: 2026-08-06T19:09:32.550Z
-Stopped at: Completed 04-07-PLAN.md (G-04-1 gap closure)
+Last session: 2026-08-06T20:12:00Z
+Stopped at: Phase 04 UAT passed and security-verified — milestone v1.0 100% complete (4/4 phases)
 Resume file: None
