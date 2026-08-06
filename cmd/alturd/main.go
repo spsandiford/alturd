@@ -204,10 +204,20 @@ func diffArgs(refArgs []string) []string {
 }
 
 // errAborted is the sentinel run() returns when the user pressed the abort
-// key. Its Msg is deliberately empty: the abort path has always printed
-// nothing to stderr, and difftool.trustExitCode = true (D-08) reads only the
-// process exit status, never any output. reportError's empty-message
-// suppression is what keeps this silent (code review CR-02).
+// key. Exit status 1 on abort is alturd's own convention (NAV-04, CR-02) for
+// shells, scripts and any non-git caller that wants to distinguish an abort
+// from a normal quit — that is unchanged. Its Msg is deliberately empty: the
+// abort path deliberately prints nothing; reportError's empty-message
+// suppression is what keeps it silent (code review CR-02).
+//
+// `git difftool` no longer observes this exit code at all (G-04-1, see
+// .planning/debug/DEBUG-difftool-trustexitcode-fatal.md): install-difftool
+// now pins difftool.trustExitCode off, which is precisely what stops a user
+// abort from surfacing as git's fatal external-diff failure. This sentinel
+// used to be justified by a trusted-exit-code contract with git
+// (difftool.trustExitCode = true reading only the process exit status) —
+// that contract no longer exists; alturd's exit-1 convention now stands on
+// its own merits for non-git callers only.
 var errAborted = &git.ExitCodeError{Code: 1}
 
 // loadDifftoolFiles builds the single-file gitdiff.File and tui.DifftoolInfo

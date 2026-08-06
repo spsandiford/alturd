@@ -98,10 +98,21 @@ func (m model) Aborted() bool { return m.aborted }
 
 // WasAborted reports whether the final tea.Model returned by tea.Program.Run
 // represents an abort (the user pressed the documented abort key, default
-// "Q") rather than a normal quit. A true result means the caller must exit
-// with status 1 (code review CR-02, D-08: difftool.trustExitCode = true
-// reads only the process exit status); by the time tea.Program.Run returns,
-// the terminal has already been restored by bubbletea's own unwind.
+// "Q") rather than a normal quit. Exit status 1 on abort is alturd's own
+// convention (NAV-04, CR-02) for shells, scripts and any non-git caller that
+// wants to distinguish an abort from a normal quit — that is unchanged. The
+// abort path deliberately prints nothing; by the time tea.Program.Run
+// returns, the terminal has already been restored by bubbletea's own unwind.
+//
+// `git difftool` no longer observes this exit code at all (G-04-1, see
+// .planning/debug/DEBUG-difftool-trustexitcode-fatal.md): install-difftool
+// now pins difftool.trustExitCode off, which is precisely what stops a user
+// abort from surfacing as git's fatal external-diff failure. A true result
+// used to be justified by a trusted-exit-code contract with git
+// (difftool.trustExitCode = true reading only the process exit status) —
+// that contract no longer exists; the caller (cmd/alturd) still exits with
+// status 1 on a true result, but purely for alturd's own non-git-caller
+// convention.
 //
 // NewModel returns the unexported model type, so cmd/alturd cannot name it
 // directly — asserting the returned tea.Model against a locally declared
