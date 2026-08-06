@@ -84,5 +84,6 @@ blocked: 0
     - path: "internal/tui/model.go"
       issue: "lines 92, 582: Aborted()/WasAborted() -- 'Q' triggers config.ActionAbort, which surfaces as alturd's own exit 1"
   missing:
-    - "Decide and implement one of the two fix directions in root_cause (drop/change trustExitCode, or change alturd's abort exit-code convention), since both cannot be satisfied simultaneously due to git's GIT_EXTERNAL_DIFF protocol"
+    - "DECISION (user, 2026-08-06): ship direction (1) — stop writing difftool.trustExitCode=true in runInstallDifftool. Pressing Q must close cleanly with git exiting 0 and no 'fatal: external diff died' message. Accepted trade-off: in a multi-file `git difftool` session (no pathspec), pressing Q on file N no longer stops file N+1 from opening — git will still walk through every remaining changed file. Do NOT pursue direction (2) (keeping trustExitCode=true and changing alturd's abort exit code instead)."
+    - "The original truth/expected wording above ('echo $? reporting 1') is now known incorrect per the debug session: git's GIT_EXTERNAL_DIFF protocol cannot deliver both 'no fatal message' and a nonzero passthrough exit code simultaneously — any nonzero exit from a trusted tool is always fatal (128) in git's diff engine. The corrected, achievable target is git exiting 0 with no fatal message. Update this test's `expected` text accordingly as part of the fix (and re-verify against the corrected expectation, not the original $?=1 wording)."
   debug_session: .planning/debug/DEBUG-difftool-trustexitcode-fatal.md
