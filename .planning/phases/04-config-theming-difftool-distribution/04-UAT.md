@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: complete
 phase: 04-config-theming-difftool-distribution
 source: [04-VERIFICATION.md]
 started: 2026-08-06T10:23:44Z
-updated: 2026-08-06T18:41:00Z
+updated: 2026-08-06T20:05:00Z
 ---
 
 ## Current Test
@@ -12,7 +12,7 @@ updated: 2026-08-06T18:41:00Z
 
 ## Tests
 
-### 1. Live interactive git difftool render (post-G-04-2-fix re-test)
+### 1. Live interactive git difftool render (post-G-04-1-fix re-test)
 expected: |
   In a real interactive terminal, after `alturd install-difftool`, run `git difftool -t alturd <file>`
   on a repo with an uncommitted change. Confirm the alturd TUI single-file view appears with no
@@ -23,27 +23,22 @@ expected: |
   "fatal: external diff died" line printed. (Expectation corrected from the original exit-status-1
   passthrough per G-04-1: git's external-diff protocol cannot deliver both a quiet session and a
   non-zero passthrough status — see .planning/debug/DEBUG-difftool-trustexitcode-fatal.md.)
-result: issue
-reported: |
-  Reproduced via scripted pty session against a real `git difftool -t alturd -- <file>` run on an
-  uncommitted change (both a long-filename `--no-index` case and a genuine tracked-file change).
-  Partial pass: no repeating "git diff --no-index:" flood, no fork/exec resource-unavailable error,
-  and the long filename's title bar does end in "…" on one row. FAILS the other two assertions:
-  pressing 'Q' does not return cleanly — git prints "fatal: external diff died, stopping at <file>"
-  and the difftool session exits 128, not a clean 1. Root cause: `alturd install-difftool` writes
-  `[difftool] prompt = false` and `trustExitCode = true` into git config. With trustExitCode=true,
-  git-difftool--helper propagates alturd's exit code (1, alturd's signal for "user cancelled") back
-  to git's core diff engine, which treats any nonzero exit from the external diff command as a
-  fatal crash (finish_command() -> die("external diff died, stopping at %s")) regardless of whether
-  the tool exited cleanly by design. This happens on every `git difftool -t alturd` invocation where
-  the user presses Q, not just the --no-index case.
-severity: major
+result: pass
+verified_by: |
+  Automated pty-driven re-test (Claude, on behalf of user) against the built binary in a scratch git
+  repo: `git difftool -t alturd -- <longfilename>` on an uncommitted tracked-file change. Title bar
+  ends in "…" on one row. Pressing 'Q' produced git exit status 0 with no "fatal: external diff died"
+  line. Also re-checked the --no-index case (long-filename, untracked-vs-untracked): no flood, no
+  fork/exec resource-unavailable error, no fatal line (exits 1, git's standard --no-index "files
+  differ" semantics, unrelated to the trustExitCode bug). Confirmed `alturd install-difftool` now
+  writes `difftool.trustexitcode=false` (local-scope test install; did not mutate the real global
+  gitconfig beyond an idempotent no-op of values already present).
 
 ## Summary
 
 total: 1
-passed: 0
-issues: 1
+passed: 1
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
@@ -52,7 +47,9 @@ blocked: 0
 
 - gap_id: G-04-1
   truth: "Pressing 'Q' in the alturd difftool view returns the shell prompt cleanly with `echo $?` reporting 1, and no 'fatal: external diff died' line is printed."
-  status: failed
+  status: resolved
+  resolved_by: 04-07-PLAN.md
+  resolved_at: 2026-08-06
   reason: "Reproduced via scripted pty test: `git difftool -t alturd -- <file>` then 'Q' prints 'fatal: external diff died, stopping at <file>' and exits 128. alturd itself exits cleanly with code 1 (confirmed by direct invocation and by a logging wrapper around the difftool.alturd.cmd), but `alturd install-difftool` sets `difftool.trustExitCode = true` locally, which causes git's diff engine to treat any nonzero exit from the external diff tool as fatal, regardless of exit code value."
   severity: major
   test: 1
