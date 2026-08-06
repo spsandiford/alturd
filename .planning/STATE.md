@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: config-theming-difftool-distribution
 status: executing
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-08-04T20:26:30.871Z"
-last_activity: 2026-08-04
+stopped_at: Completed 04-06-PLAN.md (G-04-2 gap closure)
+last_updated: "2026-08-06T10:07:10.328Z"
+last_activity: 2026-08-06
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 16
-  completed_plans: 16
+  total_plans: 17
+  completed_plans: 17
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-06-27)
 ## Current Position
 
 Phase: 04 (config-theming-difftool-distribution) — EXECUTING
-Plan: 5 of 5
-Status: All plans complete — phase re-verification pending
-Last activity: 2026-08-04 — Completed 04-05-PLAN.md (ellipsis truncation, CR-01, CR-02)
+Plan: 2 of 6
+Status: Ready to execute
+Last activity: 2026-08-06 — Phase 04 execution started
 
 Progress: [████████████████████] 5/5 plans ([██████████] 100%)
 
@@ -69,6 +69,7 @@ Progress: [████████████████████] 5/5 pla
 | Phase 04 P03 | 13min | 3 tasks | 7 files |
 | Phase 04 P04 | 25min | 2 tasks | 4 files |
 | Phase 04 P05 | 6min | 3 tasks | 4 files |
+| Phase 04 P06 | 5min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 4: local-scope-outside-repo stderr detection widened to substring "git repository" (covers git 2.39.5's actual "--local can only be used inside a git repository" wording, not just the RESEARCH.md-assumed "not a git repository") (Rule 1 auto-fix)
 - [Phase ?]: Phase 4 Plan 5: ansi.Truncate(title, m.termWidth, "…") replaces lipgloss.Style.MaxWidth for difftool title-bar truncation — MaxWidth hardcodes an empty tail internally and cannot express an ellipsis
 - [Phase ?]: Phase 4 Plan 5: abort key routes through tea.Quit + model.aborted bool + exported WasAborted(tea.Model) accessor instead of os.Exit, so bubbletea restores the terminal before cmd/alturd applies exit status 1 via a silent errAborted sentinel (CR-02)
+- [Phase ?]: Phase 4 Plan 6: difftoolDiff and diffArgs both carry --no-ext-diff (no cmd.Env rewriting) to close G-04-2's recursive difftool dispatch and its standalone-path analog; TestDifftoolDiffIgnoresExternalDiffConfiguration and TestDiffArgsDisablesExternalDiff pin the regression
 
 ### Pending Todos
 
@@ -114,6 +116,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-04T20:26:30.859Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-08-06T10:07:10.316Z
+Stopped at: Completed 04-06-PLAN.md (G-04-2 gap closure)
 Resume file: None
