@@ -118,7 +118,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Every push to GitHub runs `go test ./...` on Linux, macOS, and Windows via GitHub Actions CI
   5. A git tag push triggers goreleaser to publish `CGO_ENABLED=0` binaries for Linux (amd64/arm64), macOS (amd64/arm64), and Windows (amd64) as GitHub Release assets
 
-**Plans**: 7 plans (6/7 executed)
+**Plans**: 7/7 plans executed
 **UI hint**: yes
 
 **Wave 1** *(parallel — no shared files)*
@@ -144,7 +144,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 6** *(gap closure — blocked on Wave 5; reverses Wave 3's `trustExitCode` value and edits `cmd/alturd/main.go`, which Waves 4-5 also touched)*
 
-- [ ] 04-07-PLAN.md — gap closure G-04-1: `install-difftool` now pins `difftool.trustExitCode` off, so pressing the abort key in a `git difftool -t alturd` session exits 0 cleanly instead of triggering git's `fatal: external diff died` (exit 128) — git's external-diff protocol cannot express "user cancelled", so any trusted non-zero exit is always fatal (DIFFTOOL-01, DIFFTOOL-03); adds an end-to-end regression test with a sensitivity control and corrects the now-void exit-code rationale comments
+- [x] 04-07-PLAN.md — gap closure G-04-1: `install-difftool` now pins `difftool.trustExitCode` off, so pressing the abort key in a `git difftool -t alturd` session exits 0 cleanly instead of triggering git's `fatal: external diff died` (exit 128) — git's external-diff protocol cannot express "user cancelled", so any trusted non-zero exit is always fatal (DIFFTOOL-01, DIFFTOOL-03); adds an end-to-end regression test with a sensitivity control and corrects the now-void exit-code rationale comments
 
 ## Progress
 
@@ -156,4 +156,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Diff Model | 3/3 | Complete    | 2026-06-26 |
 | 2. Git Layer + CLI | 3/3 | Complete    | 2026-06-29 |
 | 3. TUI Application | 5/5 | Complete    | 2026-07-24 |
-| 4. Config + Theming + Difftool + Distribution | 6/6 | In Progress|  |
+| 4. Config + Theming + Difftool + Distribution | 7/7 | In Progress|  |

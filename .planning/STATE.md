@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: config-theming-difftool-distribution
 status: executing
-stopped_at: Completed 04-06-PLAN.md (G-04-2 gap closure)
-last_updated: "2026-08-06T10:07:10.328Z"
+stopped_at: Completed 04-07-PLAN.md (G-04-1 gap closure)
+last_updated: "2026-08-06T19:09:32.562Z"
 last_activity: 2026-08-06
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 17
-  completed_plans: 17
+  total_plans: 18
+  completed_plans: 18
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-27)
 ## Current Position
 
 Phase: 04 (config-theming-difftool-distribution) — EXECUTING
-Plan: 2 of 6
+Plan: 2 of 7
 Status: Ready to execute
 Last activity: 2026-08-06 — Phase 04 execution started
 
@@ -70,6 +70,7 @@ Progress: [████████████████████] 5/5 pla
 | Phase 04 P04 | 25min | 2 tasks | 4 files |
 | Phase 04 P05 | 6min | 3 tasks | 4 files |
 | Phase 04 P06 | 5min | 2 tasks | 3 files |
+| Phase 04 P07 | 5min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 5: ansi.Truncate(title, m.termWidth, "…") replaces lipgloss.Style.MaxWidth for difftool title-bar truncation — MaxWidth hardcodes an empty tail internally and cannot express an ellipsis
 - [Phase ?]: Phase 4 Plan 5: abort key routes through tea.Quit + model.aborted bool + exported WasAborted(tea.Model) accessor instead of os.Exit, so bubbletea restores the terminal before cmd/alturd applies exit status 1 via a silent errAborted sentinel (CR-02)
 - [Phase ?]: Phase 4 Plan 6: difftoolDiff and diffArgs both carry --no-ext-diff (no cmd.Env rewriting) to close G-04-2's recursive difftool dispatch and its standalone-path analog; TestDifftoolDiffIgnoresExternalDiffConfiguration and TestDiffArgsDisablesExternalDiff pin the regression
+- [Phase ?]: Phase 4 Plan 7 (G-04-1 gap closure): difftool.trustExitCode written as explicit false (not unset) so config-scope precedence converges machines already carrying the superseded true value
+- [Phase ?]: Phase 4 Plan 7: accepted trade-off — with trustExitCode=false, aborting file N in a multi-file git difftool session no longer stops file N+1 from opening (direction 2, changing alturd's own exit convention, was explicitly rejected)
 
 ### Pending Todos
 
@@ -116,6 +119,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-06T10:07:10.316Z
-Stopped at: Completed 04-06-PLAN.md (G-04-2 gap closure)
+Last session: 2026-08-06T19:09:32.550Z
+Stopped at: Completed 04-07-PLAN.md (G-04-1 gap closure)
 Resume file: None
