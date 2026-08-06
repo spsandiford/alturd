@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -109,8 +110,139 @@ func TestInstallDifftoolWritesFourKeys(t *testing.T) {
 	if v, ok := gitConfigGetRaw(t, env, "difftool.prompt"); !ok || v != "false" {
 		t.Errorf("difftool.prompt = %q (present=%v), want \"false\"", v, ok)
 	}
-	if v, ok := gitConfigGetRaw(t, env, "difftool.trustExitCode"); !ok || v != "true" {
-		t.Errorf("difftool.trustExitCode = %q (present=%v), want \"true\"", v, ok)
+	if v, ok := gitConfigGetRaw(t, env, "difftool.trustExitCode"); !ok || v != "false" {
+		t.Errorf("difftool.trustExitCode = %q (present=%v), want \"false\"", v, ok)
+	}
+}
+
+// TestInstallDifftoolRewritesStaleTrustExitCode is the G-04-1 regression: a
+// machine that already ran the previous version of install-difftool (which
+// wrote difftool.trustExitCode=true) must be converged to the corrected
+// value by simply re-running install-difftool — not just a fresh machine.
+func TestInstallDifftoolRewritesStaleTrustExitCode(t *testing.T) {
+	skipIfNoGit(t)
+	gitConfigPath := filepath.Join(t.TempDir(), "gitconfig")
+	env := isolatedEnv(gitConfigPath)
+	dir := t.TempDir()
+
+	seed := exec.Command("git", "config", "--global", "difftool.trustExitCode", "true")
+	seed.Env = env
+	if out, err := seed.CombinedOutput(); err != nil {
+		t.Fatalf("seeding stale difftool.trustExitCode: %v: %s", err, out)
+	}
+
+	_, _, code := runAlturd(t, env, dir, "install-difftool")
+	if code != 0 {
+		t.Fatalf("install-difftool exited %d, want 0", code)
+	}
+
+	if v, ok := gitConfigGetRaw(t, env, "difftool.trustExitCode"); !ok || v != "false" {
+		t.Errorf("difftool.trustExitCode = %q (present=%v), want \"false\" (G-04-1 convergence of a stale machine)", v, ok)
+	}
+}
+
+// TestGitDifftoolExitsCleanlyWhenBackendAborts is the end-to-end reproduction
+// of G-04-1: a difftool backend that exits non-zero (alturd's own abort
+// convention) must not make `git difftool` fatally die. A stub script stands
+// in for alturd on the abort path, matching exactly what the original bug
+// reporter's logging wrapper confirmed alturd itself does on abort (exit 1,
+// no output).
+func TestGitDifftoolExitsCleanlyWhenBackendAborts(t *testing.T) {
+	skipIfNoGit(t)
+	if runtime.GOOS == "windows" {
+		t.Skip("writes a POSIX #!/bin/sh stub script — not applicable on windows")
+	}
+
+	gitConfigPath := filepath.Join(t.TempDir(), "gitconfig")
+	env := isolatedEnv(gitConfigPath)
+	repoDir := t.TempDir()
+
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Env = env
+		cmd.Dir = repoDir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+
+	runGit("init")
+	runGit("config", "user.email", "test@example.com")
+	runGit("config", "user.name", "Test User")
+
+	filePath := filepath.Join(repoDir, "file.txt")
+	if err := os.WriteFile(filePath, []byte("line one\nline two\n"), 0o644); err != nil {
+		t.Fatalf("writing file.txt: %v", err)
+	}
+	runGit("add", "file.txt")
+	runGit("commit", "-m", "initial")
+
+	// Uncommitted change so `git difftool` (index vs working tree, its
+	// default comparison) has something to show.
+	if err := os.WriteFile(filePath, []byte("line one\nline two changed\n"), 0o644); err != nil {
+		t.Fatalf("modifying file.txt: %v", err)
+	}
+
+	// Stub backend that exits 1 — stands in for alturd on the abort path.
+	stubPath := filepath.Join(t.TempDir(), "abort-stub.sh")
+	if err := os.WriteFile(stubPath, []byte("#!/bin/sh\nexit 1\n"), 0o755); err != nil {
+		t.Fatalf("writing stub script: %v", err)
+	}
+
+	if _, _, code := runAlturd(t, env, repoDir, "install-difftool", "--scope", "local"); code != 0 {
+		t.Fatalf("install-difftool --scope local exited %d, want 0", code)
+	}
+
+	// Override the local difftool.alturd.cmd to the stub's path with a real
+	// `git config` subprocess so the local scope's later write wins.
+	override := exec.Command("git", "config", "--local", "difftool.alturd.cmd", stubPath)
+	override.Env = env
+	override.Dir = repoDir
+	if out, err := override.CombinedOutput(); err != nil {
+		t.Fatalf("overriding difftool.alturd.cmd: %v: %s", err, out)
+	}
+
+	runDifftool := func() (combined string, exitCode int) {
+		t.Helper()
+		cmd := exec.Command("git", "difftool", "-t", "alturd", "--", "file.txt")
+		cmd.Env = env
+		cmd.Dir = repoDir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			exitErr, ok := err.(*exec.ExitError)
+			if !ok {
+				t.Fatalf("running git difftool: %v", err)
+			}
+			return string(out), exitErr.ExitCode()
+		}
+		return string(out), 0
+	}
+
+	out, code := runDifftool()
+	if code != 0 {
+		t.Errorf("git difftool exit = %d, want 0; output=%q", code, out)
+	}
+	if strings.Contains(out, "external diff died") {
+		t.Errorf("git difftool output contains a fatal external-diff line: %q", out)
+	}
+
+	// Sensitivity control: seed the local scope's trust key back to the
+	// superseded value and confirm the failure mode reappears. This pins the
+	// causal link between this one gitconfig value and G-04-1's symptom, so
+	// the assertions above cannot pass vacuously. Only non-zero is asserted
+	// (never the literal 128) so the control stays robust across the git
+	// versions the three-OS CI matrix provides.
+	seedStale := exec.Command("git", "config", "--local", "difftool.trustExitCode", "true")
+	seedStale.Env = env
+	seedStale.Dir = repoDir
+	if out, err := seedStale.CombinedOutput(); err != nil {
+		t.Fatalf("seeding stale local difftool.trustExitCode: %v: %s", err, out)
+	}
+
+	_, controlCode := runDifftool()
+	if controlCode == 0 {
+		t.Errorf("sensitivity control: git difftool exit = 0 with stale trustExitCode=true, want non-zero")
 	}
 }
 

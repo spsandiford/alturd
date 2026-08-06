@@ -2,6 +2,19 @@
 // alturd as a git difftool backend by writing four canonical gitconfig keys
 // (DIFFTOOL-03, D-08).
 //
+// G-04-1 correction (see .planning/debug/DEBUG-difftool-trustexitcode-fatal.md):
+// the fourth key, difftool.trustExitCode, is written as false, not true.
+// git's external-diff protocol has exactly two outcomes for the invoked
+// command's exit status — zero means success, and every non-zero value is an
+// unconditional fatal crash. It cannot represent "the user intentionally
+// cancelled", so a trusted non-zero exit — which is exactly what alturd
+// produces on its documented abort convention — can never produce the clean
+// stop D-08 originally assumed it would; it instead makes git's diff engine
+// die() with "external diff died, stopping at <file>". Accepted trade-off:
+// in a multi-file `git difftool` session with no pathspec, aborting on file N
+// no longer prevents file N+1 from opening — git walks every remaining
+// changed file.
+//
 // Its git invocations deliberately do NOT go through internal/git.ExecRunner.
 // Per 04-RESEARCH.md Pitfall C, ExecRunner's error interpretation is tuned to
 // `git diff`'s exit-code conventions (it treats exit 128 as always-fatal and
@@ -64,7 +77,10 @@ func init() {
 
 // runInstallDifftool implements the D-08/D-09/D-10 install-difftool
 // contract. --scope and --name are validated before any subprocess runs, so
-// an invalid argument never causes a partial gitconfig write.
+// an invalid argument never causes a partial gitconfig write. The
+// difftool.trustExitCode key is written as false (G-04-1 correction, see the
+// D-08 comment below and .planning/debug/DEBUG-difftool-trustexitcode-fatal.md)
+// rather than the superseded true.
 func runInstallDifftool(cmd *cobra.Command, _ []string) error {
 	scope, err := cmd.Flags().GetString("scope")
 	if err != nil {
@@ -104,6 +120,25 @@ func runInstallDifftool(cmd *cobra.Command, _ []string) error {
 	// D-08: each of the four canonical keys is written through its own
 	// gitConfigSet call, so git — not alturd — edits the file and preserves
 	// unrelated keys, comments and ordering (T-04-04-03).
+	//
+	// difftool.trustExitCode is written as false (G-04-1 correction; was
+	// true), and deliberately as an explicit value rather than left unset:
+	// this key was verified empirically against installed git 2.39.5 to
+	// resolve across the system/global/local precedence chain, so a scoped
+	// `install-difftool --scope global` that merely removed the key would
+	// still lose to a lower-precedence scope still holding the superseded
+	// `true` — the fatal would come straight back. An explicit value at the
+	// install scope overrides everything below it and converges any machine
+	// that already ran the previous version of install-difftool, which is
+	// what D-10's "the command converges the config" means.
+	// git-difftool--helper only forwards the backend's exit status when the
+	// resolved value is exactly the string "true", so writing "false"
+	// restores git's own default masking behaviour and stops a trusted
+	// non-zero exit (alturd's abort convention) from ever reaching diff.c's
+	// unconditional die()-on-non-zero-exit path. See the file header comment
+	// and .planning/debug/DEBUG-difftool-trustexitcode-fatal.md for the full
+	// trace, and T-04-04-* / the Pitfall references already noted above for
+	// the surrounding key-writing contract.
 	if err := gitConfigSet(scopeFlag, "diff.tool", name); err != nil {
 		return err
 	}
@@ -113,7 +148,7 @@ func runInstallDifftool(cmd *cobra.Command, _ []string) error {
 	if err := gitConfigSet(scopeFlag, "difftool.prompt", "false"); err != nil {
 		return err
 	}
-	if err := gitConfigSet(scopeFlag, "difftool.trustExitCode", "true"); err != nil {
+	if err := gitConfigSet(scopeFlag, "difftool.trustExitCode", "false"); err != nil {
 		return err
 	}
 
