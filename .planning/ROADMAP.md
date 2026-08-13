@@ -157,3 +157,16 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Git Layer + CLI | 3/3 | Complete    | 2026-06-29 |
 | 3. TUI Application | 5/5 | Complete    | 2026-07-24 |
 | 4. Config + Theming + Difftool + Distribution | 7/7 | Complete    | 2026-08-06 |
+
+### Phase 04.1: Address tech debt: Phase 3 human UAT + REQUIREMENTS.md doc-sync (INSERTED)
+
+**Goal:** All 6 tech-debt items in `.planning/v1.0-MILESTONE-AUDIT.md` §5 are closed before v1.0 is archived — Phase 3's never-run blocking human TTY checkpoint has an executed, recorded UAT pass including TREE-01 colour rendering; REQUIREMENTS.md's traceability table no longer contradicts its own checkboxes; WR-07's difftool deleted-file contract violation is fixed and guarded by a regression test; gofmt drift is machine-enforced by CI; and Phase 4's Nyquist record is reconciled out of `status: draft`.
+**Requirements**: None — tech-debt sweep, no new v1 capability. Plans reference the pre-existing requirement IDs whose records they repair (see each plan's `requirements` frontmatter).
+**Depends on:** Phase 4
+**Plans:** 3 plans
+
+Plans:
+
+- [ ] 04.1-01-PLAN.md — code fixes: WR-07 difftool deleted-file reference-side fix (tracer, with fault-injected regression test + sensitivity control), module-wide gofmt + `.golangci.yml` formatters gate, and clearance of the 7 pre-existing golangci-lint findings blocking the CI lint job
+- [ ] 04.1-02-PLAN.md — documentation reconciliation: sync the 8 stale Phase 4 rows in REQUIREMENTS.md's traceability table, and reconcile Phase 4's Nyquist record via a real `/gsd-validate-phase 4` run
+- [ ] 04.1-03-PLAN.md — live human UAT: run Phase 3's 10-step blocking checklist plus the TREE-01 colour check in a real terminal, and record the outcome in `04.1-UAT.md`
