@@ -166,7 +166,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 **Plans:** 3 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 04.1-01-PLAN.md — code fixes: WR-07 difftool deleted-file reference-side fix (tracer, with fault-injected regression test + sensitivity control), module-wide gofmt + `.golangci.yml` formatters gate, and clearance of the 7 pre-existing golangci-lint findings blocking the CI lint job
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 04.1-02-PLAN.md — documentation reconciliation: sync the 8 stale Phase 4 rows in REQUIREMENTS.md's traceability table, and reconcile Phase 4's Nyquist record via a real `/gsd-validate-phase 4` run
 - [ ] 04.1-03-PLAN.md — live human UAT: run Phase 3's 10-step blocking checklist plus the TREE-01 colour check in a real terminal, and record the outcome in `04.1-UAT.md`
