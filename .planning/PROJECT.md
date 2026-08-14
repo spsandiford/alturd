@@ -104,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-06 after Phase 04*
+*Last updated: 2026-08-14 after Phase 04.1 — tech-debt sweep closed: WR-07 (difftool deleted-file rendering) fixed with regression coverage, gofmt/golangci-lint drift now CI-enforced, REQUIREMENTS.md traceability table resynced, Phase 4 Nyquist record reconciled out of draft, and Phase 3's long-outstanding human UAT checkpoint executed and recorded (11/11 pass, including TREE-01 colour rendering). All 30 v1 requirements remain Validated; none were newly satisfied by this phase.*
