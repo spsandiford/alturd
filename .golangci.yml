@@ -6,3 +6,7 @@ linters:
     - govet
     - errcheck
     - revive
+formatters:
+  enable:
+    - gofmt
+    - goimports

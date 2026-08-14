@@ -18,9 +18,9 @@ var dmp = diffmatchpatch.New()
 // Applied to the full content of each side based on LineKind.
 // Phase 4 will make these theme-configurable.
 const (
-	bgAdded    = "\x1b[48;5;22m"  // dark green
-	bgRemoved  = "\x1b[48;5;52m"  // dark red
-	bgModified = "\x1b[48;5;58m"  // dark amber/olive
+	bgAdded    = "\x1b[48;5;22m" // dark green
+	bgRemoved  = "\x1b[48;5;52m" // dark red
+	bgModified = "\x1b[48;5;58m" // dark amber/olive
 )
 
 // Intra-line span markers (DIFF-04): bold weight (\x1b[1m) starts the brighter

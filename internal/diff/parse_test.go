@@ -32,8 +32,8 @@ type parseCase struct {
 
 var parseCases = []parseCase{
 	{
-		name: "simple",
-		fixture: "simple.diff",
+		name:          "simple",
+		fixture:       "simple.diff",
 		wantFileCount: 1,
 		wantName:      "README.md",
 		wantAdded:     1,
@@ -41,8 +41,8 @@ var parseCases = []parseCase{
 		wantContext:   6,
 	},
 	{
-		name: "binary",
-		fixture: "binary.diff",
+		name:          "binary",
+		fixture:       "binary.diff",
 		wantFileCount: 1,
 		wantName:      "assets/logo.png",
 		wantIsBinary:  true,
@@ -51,8 +51,8 @@ var parseCases = []parseCase{
 		wantContext:   0,
 	},
 	{
-		name: "rename",
-		fixture: "rename.diff",
+		name:          "rename",
+		fixture:       "rename.diff",
 		wantFileCount: 1,
 		wantName:      "internal/diff/parse.go",
 		wantIsRename:  true,
@@ -61,8 +61,8 @@ var parseCases = []parseCase{
 		wantContext:   0,
 	},
 	{
-		name: "mode-only",
-		fixture: "mode-only.diff",
+		name:          "mode-only",
+		fixture:       "mode-only.diff",
 		wantFileCount: 1,
 		wantName:      "scripts/build.sh",
 		wantAdded:     0,
@@ -70,8 +70,8 @@ var parseCases = []parseCase{
 		wantContext:   0,
 	},
 	{
-		name: "submodule",
-		fixture: "submodule.diff",
+		name:          "submodule",
+		fixture:       "submodule.diff",
 		wantFileCount: 1,
 		wantName:      "vendor/charm",
 		wantSubmodule: true,
@@ -80,8 +80,8 @@ var parseCases = []parseCase{
 		wantContext:   0,
 	},
 	{
-		name: "no-newline",
-		fixture: "no-newline.diff",
+		name:          "no-newline",
+		fixture:       "no-newline.diff",
 		wantFileCount: 1,
 		wantName:      "config.txt",
 		wantNoEOL:     true,
@@ -90,8 +90,8 @@ var parseCases = []parseCase{
 		wantContext:   2,
 	},
 	{
-		name: "new-file",
-		fixture: "new-file.diff",
+		name:          "new-file",
+		fixture:       "new-file.diff",
 		wantFileCount: 1,
 		wantName:      "internal/diff/model.go",
 		wantIsNew:     true,
@@ -100,8 +100,8 @@ var parseCases = []parseCase{
 		wantContext:   0,
 	},
 	{
-		name: "deleted-file",
-		fixture: "deleted-file.diff",
+		name:          "deleted-file",
+		fixture:       "deleted-file.diff",
 		wantFileCount: 1,
 		wantName:      "old/legacy.go",
 		wantNameIsOld: true,
@@ -111,8 +111,8 @@ var parseCases = []parseCase{
 		wantContext:   0,
 	},
 	{
-		name: "multi-file",
-		fixture: "multi-file.diff",
+		name:          "multi-file",
+		fixture:       "multi-file.diff",
 		wantFileCount: 2,
 		wantName:      "internal/diff/model.go",
 		wantAdded:     -1,
@@ -120,8 +120,8 @@ var parseCases = []parseCase{
 		wantContext:   -1,
 	},
 	{
-		name: "multi-hunk",
-		fixture: "multi-hunk.diff",
+		name:          "multi-hunk",
+		fixture:       "multi-hunk.diff",
 		wantFileCount: 1,
 		wantName:      "internal/diff/render.go",
 		wantAdded:     -1,
@@ -129,8 +129,8 @@ var parseCases = []parseCase{
 		wantContext:   -1,
 	},
 	{
-		name: "large-line",
-		fixture: "large-line.diff",
+		name:          "large-line",
+		fixture:       "large-line.diff",
 		wantFileCount: 1,
 		wantName:      "internal/diff/generated_data.go",
 		wantAdded:     1,
@@ -138,8 +138,8 @@ var parseCases = []parseCase{
 		wantContext:   4,
 	},
 	{
-		name: "many-tokens",
-		fixture: "many-tokens.diff",
+		name:          "many-tokens",
+		fixture:       "many-tokens.diff",
 		wantFileCount: 1,
 		wantName:      "internal/diff/token_test.go",
 		wantAdded:     1,
@@ -147,8 +147,8 @@ var parseCases = []parseCase{
 		wantContext:   4,
 	},
 	{
-		name: "multiline-string",
-		fixture: "multiline-string.diff",
+		name:          "multiline-string",
+		fixture:       "multiline-string.diff",
 		wantFileCount: 1,
 		wantName:      "internal/diff/highlight_test.go",
 		wantAdded:     -1,

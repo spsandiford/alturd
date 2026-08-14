@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/spf13/cobra"
 	tea "charm.land/bubbletea/v2"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/spf13/cobra"
 
 	"github.com/alturd/alturd/internal/config"
 	"github.com/alturd/alturd/internal/diff"

@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/charmbracelet/x/ansi"
@@ -71,11 +71,11 @@ type model struct {
 	focusedPane pane
 	treeWidth   int
 
-	treeVP    viewport.Model
-	treeNodes []*TreeNode
-	treeFlat  []flatRow
-	treeIdx   int
-	allFiles  bool
+	treeVP       viewport.Model
+	treeNodes    []*TreeNode
+	treeFlat     []flatRow
+	treeIdx      int
+	allFiles     bool
 	allFilePaths []string
 
 	diffVP      viewport.Model
@@ -84,12 +84,12 @@ type model struct {
 	hunkRows    []int
 	currentHunk int
 
-	searchMode      bool
-	searchTyping    bool // true while textinput is focused for input; false in n/N navigation phase
-	searchInput     textinput.Model
-	diffContent     string // unhighlighted rendered diff content
-	searchMatches   []Match
-	searchMatchIdx  int
+	searchMode     bool
+	searchTyping   bool // true while textinput is focused for input; false in n/N navigation phase
+	searchInput    textinput.Model
+	diffContent    string // unhighlighted rendered diff content
+	searchMatches  []Match
+	searchMatchIdx int
 
 	aborted bool // true when the user pressed the abort key (config.ActionAbort, CR-02)
 }

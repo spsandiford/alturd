@@ -17,7 +17,7 @@ import (
 // A node may represent a single directory, a GitHub-style collapsed chain
 // (e.g. "src/internal/diff"), or a file leaf.
 type TreeNode struct {
-	Name     string     // display name; may contain "/" for collapsed chains (D-09)
+	Name     string // display name; may contain "/" for collapsed chains (D-09)
 	Children []*TreeNode
 	IsDir    bool
 	Path     string // full path; non-empty only for file leaves
