@@ -289,7 +289,7 @@ func TestInstallDifftoolBlocksExistingTool(t *testing.T) {
 	if code != 1 {
 		t.Fatalf("exit = %d, want 1", code)
 	}
-	want := "diff.tool is already set to \"vimdiff\"; pass --force to overwrite.\n"
+	want := "diff.tool is already set to \"vimdiff\"; pass --force to overwrite\n"
 	if stderr != want {
 		t.Errorf("stderr = %q, want %q", stderr, want)
 	}

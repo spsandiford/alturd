@@ -114,7 +114,7 @@ func runInstallDifftool(cmd *cobra.Command, _ []string) error {
 	// semantics for the idempotency check (DIFFTOOL-03 encoding edge).
 	overwritingForeignTool := present && existing != name
 	if overwritingForeignTool && !force {
-		return fmt.Errorf("diff.tool is already set to %q; pass --force to overwrite.", existing)
+		return fmt.Errorf("diff.tool is already set to %q; pass --force to overwrite", existing)
 	}
 
 	// D-08: each of the four canonical keys is written through its own
@@ -154,14 +154,14 @@ func runInstallDifftool(cmd *cobra.Command, _ []string) error {
 
 	switch {
 	case overwritingForeignTool:
-		fmt.Fprintf(os.Stdout, "Overwrote existing diff.tool %q with %q (scope: %s, --force).\n", existing, name, scope)
+		_, _ = fmt.Fprintf(os.Stdout, "Overwrote existing diff.tool %q with %q (scope: %s, --force).\n", existing, name, scope)
 	case present:
 		// present && existing == name: idempotent re-run — the four keys were
 		// still re-written above (that is what "idempotent" means under D-10:
 		// the command converges the config), but the copy signals no change.
-		fmt.Fprintf(os.Stdout, "alturd is already configured as git difftool %q (scope: %s).\n", name, scope)
+		_, _ = fmt.Fprintf(os.Stdout, "alturd is already configured as git difftool %q (scope: %s).\n", name, scope)
 	default:
-		fmt.Fprintf(os.Stdout, "Installed alturd as git difftool %q (scope: %s).\n", name, scope)
+		_, _ = fmt.Fprintf(os.Stdout, "Installed alturd as git difftool %q (scope: %s).\n", name, scope)
 	}
 	return nil
 }

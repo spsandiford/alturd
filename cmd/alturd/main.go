@@ -389,11 +389,11 @@ func reportError(err error, w io.Writer) int {
 	var exitErr *git.ExitCodeError
 	if errors.As(err, &exitErr) {
 		if exitErr.Msg != "" {
-			fmt.Fprintln(w, exitErr.Msg)
+			_, _ = fmt.Fprintln(w, exitErr.Msg)
 		}
 		return exitErr.Code
 	}
-	fmt.Fprintln(w, err.Error())
+	_, _ = fmt.Fprintln(w, err.Error())
 	return 1
 }
 

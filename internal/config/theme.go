@@ -1,7 +1,8 @@
-// Package config: theme.go implements THEME-01's terminal background
-// resolution — a 50ms-bounded OSC 11 auto-detection with a dark fallback,
-// overridable by an explicit --theme flag or the config `theme` key, and
-// skipped entirely in difftool mode (D-06).
+// theme.go implements THEME-01's terminal background resolution — a
+// 50ms-bounded OSC 11 auto-detection with a dark fallback, overridable by
+// an explicit --theme flag or the config `theme` key, and skipped entirely
+// in difftool mode (D-06).
+
 package config
 
 import (
