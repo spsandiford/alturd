@@ -163,12 +163,12 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 **Goal:** All 6 tech-debt items in `.planning/v1.0-MILESTONE-AUDIT.md` §5 are closed before v1.0 is archived — Phase 3's never-run blocking human TTY checkpoint has an executed, recorded UAT pass including TREE-01 colour rendering; REQUIREMENTS.md's traceability table no longer contradicts its own checkboxes; WR-07's difftool deleted-file contract violation is fixed and guarded by a regression test; gofmt drift is machine-enforced by CI; and Phase 4's Nyquist record is reconciled out of `status: draft`.
 **Requirements**: None — tech-debt sweep, no new v1 capability. Plans reference the pre-existing requirement IDs whose records they repair (see each plan's `requirements` frontmatter).
 **Depends on:** Phase 4
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 04.1-01-PLAN.md — code fixes: WR-07 difftool deleted-file reference-side fix (tracer, with fault-injected regression test + sensitivity control), module-wide gofmt + `.golangci.yml` formatters gate, and clearance of the 7 pre-existing golangci-lint findings blocking the CI lint job
+- [x] 04.1-01-PLAN.md — code fixes: WR-07 difftool deleted-file reference-side fix (tracer, with fault-injected regression test + sensitivity control), module-wide gofmt + `.golangci.yml` formatters gate, and clearance of the 7 pre-existing golangci-lint findings blocking the CI lint job
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

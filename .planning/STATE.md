@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 04.1
-status: completed
-stopped_at: Phase 04.1 context gathered
-last_updated: "2026-08-13T17:16:06.581Z"
-last_activity: 2026-08-06
-last_activity_desc: Phase 04 complete
+current_phase_name: address-tech-debt-phase-3-human-uat-requirements-md-doc-sync
+status: executing
+stopped_at: Completed 04.1-01-PLAN.md
+last_updated: "2026-08-14T19:26:53.534Z"
+last_activity: 2026-08-14
+last_activity_desc: Phase 04.1 execution started
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
-current_phase_name: config-theming-difftool-distribution
+  total_plans: 21
+  completed_plans: 19
 ---
 
 # Project State
@@ -23,16 +23,16 @@ current_phase_name: config-theming-difftool-distribution
 See: .planning/PROJECT.md (updated 2026-06-27)
 
 **Core value:** A developer can download a single binary, run `alturd` in any git repository, and navigate every changed file and every individual diff hunk with fast keyboard-driven controls — no runtime dependencies required.
-**Current focus:** Phase 04 — config-theming-difftool-distribution
+**Current focus:** Phase 04.1 — address-tech-debt-phase-3-human-uat-requirements-md-doc-sync
 
 ## Current Position
 
-Phase: 04.1
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-08-06 — Phase 04 complete
+Phase: 04.1 (address-tech-debt-phase-3-human-uat-requirements-md-doc-sync) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-08-14 — Phase 04.1 execution started
 
-Progress: [████████████████████] 5/5 plans ([██████████] 100%)
+Progress: [████████████████████] 5/5 plans ([█████████░] 90%)
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Progress: [████████████████████] 5/5 pla
 | Phase 04 P05 | 6min | 3 tasks | 4 files |
 | Phase 04 P06 | 5min | 2 tasks | 3 files |
 | Phase 04 P07 | 5min | 3 tasks | 5 files |
+| Phase 04.1 P01 | ~5min active | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 7: accepted trade-off — with trustExitCode=false, aborting file N in a multi-file git difftool session no longer stops file N+1 from opening (direction 2, changing alturd's own exit convention, was explicitly rejected)
 - Phase 4: UAT test 1 re-verified pass after G-04-1 gap closure (04-07) — git difftool exits 0 on abort with no fatal message, confirmed via scripted pty session
 - Phase 4: Security review — 49/49 STRIDE threats closed (32 verified in implementation, 17 accepted risk), threats_open: 0 (04-SECURITY.md)
+- [Phase ?]: Phase 04.1 Plan 1: DifftoolInfo.NewFileLines renamed to RefFileLines (WR-07 fix) since it no longer always holds post-image content
+- [Phase ?]: Phase 04.1 Plan 1: gofmt swept 5 drifted files (not the 3 named by the milestone audit) so the new .golangci.yml formatters gate lands green on first run
+- [Phase ?]: Phase 04.1 Plan 1: cleared 7 pre-existing golangci-lint findings (not named in 04.1-CONTEXT.md) as the enabling condition for the new formatters gate to be a readable CI signal
 
 ### Pending Todos
 
@@ -118,6 +122,7 @@ None.
 ### Blockers/Concerns
 
 - Phase 3 research flag: in-pane search ANSI-aware marker insertion is non-trivial
+- go test -race ./... cannot run in this execution sandbox (CGO_ENABLED=0, no gcc/cc, no root) — recorded in .planning/WINDOWS.md; needs re-run in an environment with a C toolchain before Phase 04.1 Plan 1's WR-07 fix is fully verified per the plan's own bar
 
 ### Roadmap Evolution
 
@@ -125,6 +130,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-13T17:16:06.564Z
-Stopped at: Phase 04.1 context gathered
-Resume file: .planning/phases/04.1-address-tech-debt-phase-3-human-uat-requirements-md-doc-sync/04.1-CONTEXT.md
+Last session: 2026-08-14T19:26:53.521Z
+Stopped at: Completed 04.1-01-PLAN.md
+Resume file: None
