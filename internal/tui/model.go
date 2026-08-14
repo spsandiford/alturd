@@ -45,16 +45,18 @@ type resizePollMsg struct{}
 // DifftoolInfo carries the difftool-mode-only data cmd/alturd/main.go
 // resolves before constructing the model: whether difftool mode is active,
 // the git-supplied N-of-M counters, the real working-tree filename (git's
-// $MERGED), and the pre-loaded post-image lines for full-file rendering. A
-// struct rather than four positional NewModel parameters keeps the
-// constructor signature from growing a fifth, sixth and seventh argument,
-// and lets the zero value mean "standalone mode" (DIFFTOOL-01, DIFFTOOL-02).
+// $MERGED), and the pre-loaded reference-version lines for full-file
+// rendering — new-file content for modifications and additions, old-file
+// content for deletions (WR-07). A struct rather than four positional
+// NewModel parameters keeps the constructor signature from growing a
+// fifth, sixth and seventh argument, and lets the zero value mean
+// "standalone mode" (DIFFTOOL-01, DIFFTOOL-02).
 type DifftoolInfo struct {
 	Enabled      bool
 	Counter      int
 	Total        int
 	Filename     string
-	NewFileLines []string
+	RefFileLines []string
 }
 
 type model struct {
@@ -374,12 +376,13 @@ func (m *model) refreshDiffContent() {
 		var fileLines []string
 		var err error
 		if m.difftool.Enabled {
-			// Difftool mode: use the already-loaded post-image lines instead
-			// of fetchFileLines, which shells out to `git show HEAD:<name>` —
-			// meaningless for a file git handed us as a temp path. This keeps
-			// full-file mode (DIFF-05) working in difftool mode rather than
-			// silently degrading to hunk-context rendering.
-			fileLines = m.difftool.NewFileLines
+			// Difftool mode: use the already-loaded reference-version lines
+			// instead of fetchFileLines, which shells out to
+			// `git show HEAD:<name>` — meaningless for a file git handed us
+			// as a temp path. This keeps full-file mode (DIFF-05) working in
+			// difftool mode rather than silently degrading to hunk-context
+			// rendering.
+			fileLines = m.difftool.RefFileLines
 		} else {
 			fileLines, err = fetchFileLines(file)
 		}

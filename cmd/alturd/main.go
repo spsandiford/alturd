@@ -253,14 +253,23 @@ func loadDifftoolFiles(local, remote, path string) ([]*gitdiff.File, tui.Difftoo
 
 	counter, total := difftoolCounters()
 
-	// Load the post-image lines for full-file rendering directly from the
-	// already-materialised --difftool-remote file — git show has no meaning
-	// for a temp path (04-RESEARCH.md Pattern 4). Opened read-only; never
-	// written to (T-04-03-03). A /dev/null remote (a deletion) legitimately
+	// Load the reference-version lines for full-file rendering directly from
+	// the already-materialised --difftool-local/--difftool-remote file — git
+	// show has no meaning for a temp path (04-RESEARCH.md Pattern 4). Opened
+	// read-only; never written to (T-04-03-03). The reference side is the
+	// post-image for modifications and additions (--difftool-remote), but
+	// for a deletion git's $REMOTE is /dev/null — the old content lives only
+	// in $LOCAL — so a deleted file reads from local instead, honouring
+	// AlignFull's documented old-file-for-deletions contract
+	// (internal/diff/align.go:254-261, WR-07). A /dev/null source legitimately
 	// yields an empty slice.
-	var newFileLines []string
-	if data, readErr := os.ReadFile(remote); readErr == nil {
-		newFileLines = splitDifftoolFileLines(data)
+	refPath := remote
+	if files[0].IsDelete {
+		refPath = local
+	}
+	var refFileLines []string
+	if data, readErr := os.ReadFile(refPath); readErr == nil {
+		refFileLines = splitDifftoolFileLines(data)
 	}
 
 	dt := tui.DifftoolInfo{
@@ -268,7 +277,7 @@ func loadDifftoolFiles(local, remote, path string) ([]*gitdiff.File, tui.Difftoo
 		Counter:      counter,
 		Total:        total,
 		Filename:     base,
-		NewFileLines: newFileLines,
+		RefFileLines: refFileLines,
 	}
 	return files, dt, nil
 }
