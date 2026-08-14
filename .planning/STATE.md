@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04.1
 current_phase_name: address-tech-debt-phase-3-human-uat-requirements-md-doc-sync
 status: executing
-stopped_at: Completed 04.1-01-PLAN.md
-last_updated: "2026-08-14T19:26:53.534Z"
+stopped_at: Completed 04.1-02-PLAN.md
+last_updated: "2026-08-14T19:33:45.693Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 04.1 execution started
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 21
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-06-27)
 ## Current Position
 
 Phase: 04.1 (address-tech-debt-phase-3-human-uat-requirements-md-doc-sync) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 04.1 execution started
 
-Progress: [████████████████████] 5/5 plans ([█████████░] 90%)
+Progress: [████████████████████] 5/5 plans ([██████████] 95%)
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Progress: [████████████████████] 5/5 pla
 | Phase 04 P06 | 5min | 2 tasks | 3 files |
 | Phase 04 P07 | 5min | 3 tasks | 5 files |
 | Phase 04.1 P01 | ~5min active | 3 tasks | 10 files |
+| Phase 04.1 P02 | 15min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 04.1 Plan 1: DifftoolInfo.NewFileLines renamed to RefFileLines (WR-07 fix) since it no longer always holds post-image content
 - [Phase ?]: Phase 04.1 Plan 1: gofmt swept 5 drifted files (not the 3 named by the milestone audit) so the new .golangci.yml formatters gate lands green on first run
 - [Phase ?]: Phase 04.1 Plan 1: cleared 7 pre-existing golangci-lint findings (not named in 04.1-CONTEXT.md) as the enabling condition for the new formatters gate to be a readable CI signal
+- [Phase ?]: Phase 04.1 Plan 2: REQUIREMENTS.md targeted sync (D-04) — only the 8 named Status cells + footer line changed; git diff --stat confirmed 9 lines
+- [Phase ?]: Phase 04.1 Plan 2: 04-VALIDATION.md reconciled via a real validate-phase run (D-07), not hand-edited frontmatter — zero coverage gaps found across all 9 Phase 4 requirements, nyquist_compliant: true is a genuine finding
 
 ### Pending Todos
 
@@ -130,6 +133,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-14T19:26:53.521Z
-Stopped at: Completed 04.1-01-PLAN.md
+Last session: 2026-08-14T19:33:45.681Z
+Stopped at: Completed 04.1-02-PLAN.md
 Resume file: None
