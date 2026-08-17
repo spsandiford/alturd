@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 04.1
-status: completed
+status: Awaiting next milestone
 stopped_at: Completed 04.1-03-PLAN.md
-last_updated: "2026-08-14T19:52:18.677Z"
-last_activity: 2026-08-14
-last_activity_desc: Phase 04.1 complete
+last_updated: "2026-08-17T15:44:46.579Z"
+last_activity: 2026-08-17
+last_activity_desc: Milestone v1.0 completed and archived
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 21
   completed_plans: 21
+current_phase: 04.1
 current_phase_name: address-tech-debt-phase-3-human-uat-requirements-md-doc-sync
 ---
 
@@ -27,12 +27,10 @@ See: .planning/PROJECT.md (updated 2026-06-27)
 
 ## Current Position
 
-Phase: 04.1
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-08-14 — Phase 04.1 complete
-
-Progress: [████████████████████] 5/5 plans ([██████████] 100%)
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-17 — Milestone v1.0 completed and archived
 
 ## Performance Metrics
 
@@ -134,8 +132,21 @@ None.
 
 - Phase 04.1 inserted after Phase 4: Address tech debt: Phase 3 human UAT + REQUIREMENTS.md doc-sync (URGENT)
 
+## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-08-17:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | DEBUG-difftool-trustexitcode-fatal | diagnosed (root cause fixed in Phase 4 G-04-1: difftool.trustExitCode written false, TestGitDifftoolExitsCleanlyWhenBackendAborts; debug session file never flipped to status:fixed — bookkeeping only) |
+| debug | difftool-recursive-diff-loop | diagnosed (root cause fixed in Phase 4 G-04-2: --no-ext-diff added to difftoolDiff/diffArgs, regression tests pin it; debug session file never flipped to status:fixed — bookkeeping only) |
+
 ## Session Continuity
 
 Last session: 2026-08-14T19:47:29.587Z
 Stopped at: Completed 04.1-03-PLAN.md
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
